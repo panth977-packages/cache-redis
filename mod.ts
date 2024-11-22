@@ -1,3 +1,32 @@
+/**
+ * Redis Cache Client for CACHE.CacheController
+ *
+ * @module
+ *
+ * @example
+ * ```ts
+ * import { CACHE } from "@panth977/cache";
+ * import { RedisCacheClient } from "@panth977/cache-redis";
+ * import * as redis from "redis";
+ *
+ * const cache = new CACHE.CacheController({
+ *   client: new RedisCacheClient(redis.createClient(), {
+ *     decode: JSON.parse,
+ *     encode: JSON.stringify,
+ *     delayInMs: 10,
+ *     label: "Redis",
+ *   }),
+ *   allowed: { "*": true, increment: false },
+ *   defaultExpiry: 3600,
+ *   log: false,
+ *   prefix: 'Dev',
+ *   separator: ':',
+ * });
+ *
+ * cache.[API]
+ * ```
+ */
+
 import type {
   RedisClientType,
   RedisDefaultModules,
@@ -146,7 +175,7 @@ end
 return {allowed, currentValue}
   `,
 };
-export type AllFields = typeof CACHE.AbstractCacheClient.AllFields;
+
 /**
  * Use this as a client for CACHE.CacheController
  */ export class RedisCacheClient<
@@ -273,14 +302,14 @@ export type AllFields = typeof CACHE.AbstractCacheClient.AllFields;
   override async existsHashFields(
     context: FUNCTIONS.Context,
     key: CACHE.KEY,
-    fields: CACHE.KEY[] | AllFields,
+    fields: CACHE.AllFields | CACHE.KEY[],
     log?: boolean
   ): Promise<Record<string, boolean>> {
     const timer = time();
     let Err = undefined;
     const value = await this.existsExe([
       key.toString(),
-      fields === CACHE.AbstractCacheClient.AllFields
+      fields === '*'
         ? "*"
         : fields.map((x) => x.toString()),
     ]).catch((err) => {
@@ -290,7 +319,7 @@ export type AllFields = typeof CACHE.AbstractCacheClient.AllFields;
     if (log) {
       context.log(
         `(${timer()} ms) ${this.name}.exists(${key}, ${
-          fields === CACHE.AbstractCacheClient.AllFields ? "*" : `[${fields}]`
+          fields === '*' ? "*" : `[${fields}]`
         }) ${Err === undefined ? `✅` : `❌: ${Err}`}`
       );
     }
@@ -324,14 +353,14 @@ export type AllFields = typeof CACHE.AbstractCacheClient.AllFields;
   override async readHashFields<T extends Record<string, unknown>>(
     context: FUNCTIONS.Context,
     key: CACHE.KEY,
-    fields: AllFields | CACHE.KEY[],
+    fields: CACHE.AllFields | CACHE.KEY[],
     log?: boolean
   ): Promise<Partial<T>> {
     const timer = time();
     let Err = undefined;
     const value = await this.readExe([
       key.toString(),
-      fields === CACHE.AbstractCacheClient.AllFields
+      fields === '*'
         ? "*"
         : fields.map((x) => x.toString()),
     ]).catch((err) => {
@@ -341,7 +370,7 @@ export type AllFields = typeof CACHE.AbstractCacheClient.AllFields;
     if (log) {
       context.log(
         `(${timer()} ms) ${this.name}.read(${key}, ${
-          fields === CACHE.AbstractCacheClient.AllFields ? "*" : `[${fields}]`
+          fields === '*' ? "*" : `[${fields}]`
         }) ${Err === undefined ? `✅` : `❌: ${Err}`}`
       );
     }
@@ -447,14 +476,14 @@ export type AllFields = typeof CACHE.AbstractCacheClient.AllFields;
   override async removeHashFields(
     context: FUNCTIONS.Context,
     key: CACHE.KEY,
-    fields: AllFields | CACHE.KEY[],
+    fields: CACHE.AllFields | CACHE.KEY[],
     log?: boolean
   ): Promise<void> {
     const timer = time();
     let Err = undefined;
     await this.removeExe([
       key.toString(),
-      fields === CACHE.AbstractCacheClient.AllFields
+      fields === '*'
         ? "*"
         : fields.map((x) => x.toString()),
     ]).catch((err) => {
@@ -463,7 +492,7 @@ export type AllFields = typeof CACHE.AbstractCacheClient.AllFields;
     if (log) {
       context.log(
         `(${timer()} ms) ${this.name}.read(${key}, ${
-          fields === CACHE.AbstractCacheClient.AllFields ? "*" : `[${fields}]`
+          fields === '*' ? "*" : `[${fields}]`
         }) ${Err === undefined ? `✅` : `❌: ${Err}`}`
       );
     }
