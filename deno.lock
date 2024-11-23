@@ -1,14 +1,14 @@
 {
   "version": "4",
   "specifiers": {
-    "jsr:@panth977/cache@~0.1.4": "0.1.4",
+    "jsr:@panth977/cache@~0.1.5": "0.1.5",
     "jsr:@panth977/functions@~0.1.2": "0.1.2",
     "jsr:@panth977/tools@~0.1.29": "0.1.29",
     "npm:redis@^4.6.13": "4.7.0_@redis+client@1.6.0"
   },
   "jsr": {
-    "@panth977/cache@0.1.4": {
-      "integrity": "d10d8398c145236f3af212e4b929b99f0cfba7b0d790675f59adf59fbe184d4b"
+    "@panth977/cache@0.1.5": {
+      "integrity": "1be3de84e3600d4babc83ab8b9f68d61bfe21f373f7dc049d624827c0b8265ae"
     },
     "@panth977/functions@0.1.2": {
       "integrity": "4ee226f8a6ea5305509449fad0d510c7a8bcb19b0a65f081827711ec13c549b9"
@@ -79,7 +79,7 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@panth977/cache@~0.1.4",
+      "jsr:@panth977/cache@~0.1.5",
       "jsr:@panth977/functions@~0.1.2",
       "jsr:@panth977/tools@~0.1.29",
       "npm:redis@^4.6.13"

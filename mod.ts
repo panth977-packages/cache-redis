@@ -309,9 +309,7 @@ return {allowed, currentValue}
     let Err = undefined;
     const value = await this.existsExe([
       key.toString(),
-      fields === '*'
-        ? "*"
-        : fields.map((x) => x.toString()),
+      fields === "*" ? "*" : fields.map((x) => x.toString()),
     ]).catch((err) => {
       Err = err ?? null;
       return {};
@@ -319,7 +317,7 @@ return {allowed, currentValue}
     if (log) {
       context.log(
         `(${timer()} ms) ${this.name}.exists(${key}, ${
-          fields === '*' ? "*" : `[${fields}]`
+          fields === "*" ? "*" : `[${fields}]`
         }) ${Err === undefined ? `✅` : `❌: ${Err}`}`
       );
     }
@@ -360,9 +358,7 @@ return {allowed, currentValue}
     let Err = undefined;
     const value = await this.readExe([
       key.toString(),
-      fields === '*'
-        ? "*"
-        : fields.map((x) => x.toString()),
+      fields === "*" ? "*" : fields.map((x) => x.toString()),
     ]).catch((err) => {
       Err = err ?? null;
       return {} as Record<string, string>;
@@ -370,7 +366,7 @@ return {allowed, currentValue}
     if (log) {
       context.log(
         `(${timer()} ms) ${this.name}.read(${key}, ${
-          fields === '*' ? "*" : `[${fields}]`
+          fields === "*" ? "*" : `[${fields}]`
         }) ${Err === undefined ? `✅` : `❌: ${Err}`}`
       );
     }
@@ -415,14 +411,21 @@ return {allowed, currentValue}
   override async writeHashFields<T extends Record<string, unknown>>(
     context: FUNCTIONS.Context,
     key: CACHE.KEY,
-    value: T | Promise<T>,
+    value: Promise<T> | { [k in keyof T]: Promise<T[k]> | T[k] },
     expire: number,
     log?: boolean
   ): Promise<void> {
     let awaitedValue: T;
     try {
-      awaitedValue = await value;
+      awaitedValue = (
+        value instanceof Promise
+          ? await value.catch(() => ({} as never))
+          : value
+      ) as T;
       for (const key in awaitedValue) {
+        if (awaitedValue[key] instanceof Promise) {
+          awaitedValue[key] = await awaitedValue[key].catch(() => undefined);
+        }
         if (awaitedValue[key] === undefined) {
           delete awaitedValue[key];
         }
@@ -483,16 +486,14 @@ return {allowed, currentValue}
     let Err = undefined;
     await this.removeExe([
       key.toString(),
-      fields === '*'
-        ? "*"
-        : fields.map((x) => x.toString()),
+      fields === "*" ? "*" : fields.map((x) => x.toString()),
     ]).catch((err) => {
       Err = err ?? null;
     });
     if (log) {
       context.log(
         `(${timer()} ms) ${this.name}.read(${key}, ${
-          fields === '*' ? "*" : `[${fields}]`
+          fields === "*" ? "*" : `[${fields}]`
         }) ${Err === undefined ? `✅` : `❌: ${Err}`}`
       );
     }
