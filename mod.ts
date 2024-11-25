@@ -44,14 +44,26 @@ function time() {
     return Date.now() - start;
   };
 }
-
+/**
+ * Function to decode the data from redis
+ * @param val 
+ * @returns 
+ */
 export function decode<T>(val: string): T {
   return JSON.parse(val);
 }
+/**
+ * Function to encode the data to redis
+ * @param val 
+ * @returns 
+ */
 export function encode<T>(val: T): string {
   return JSON.stringify(val);
 }
 
+/**
+ * Scripts used for queering redis
+ */
 export const luaScripts: {
   readonly exists: string;
   readonly read: string;
