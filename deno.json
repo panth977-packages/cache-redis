@@ -1,6 +1,6 @@
 {
   "name": "@panth977/cache-redis",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "license": "MIT",
   "exports": "./mod.ts",
   "tasks": {
@@ -16,9 +16,9 @@
     "lineWidth": 150
   },
   "imports": {
-    "@panth977/cache": "jsr:@panth977/cache@^0.1.5",
-    "@panth977/functions": "jsr:@panth977/functions@^0.1.2",
-    "@panth977/tools": "jsr:@panth977/tools@^0.1.29",
+    "@panth977/cache": "jsr:@panth977/cache@^0.2.0",
+    "@panth977/functions": "jsr:@panth977/functions@^0.2.0",
+    "@panth977/tools": "jsr:@panth977/tools@^0.2.0",
     "redis": "npm:redis@^4.6.13"
   }
 }
