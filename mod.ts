@@ -234,65 +234,83 @@ return {allowed, currentValue}
     this.client = client;
     this.opt = opt;
     const timeout = opt.delayInMs;
-    this.existsExe = TOOLS.CreateBatchProcessor(timeout, async function (cmds) {
-      const result = await client.eval(luaScripts.exists, {
-        keys: cmds.map((p) => p[0]),
-        arguments: cmds.map((p) => JSON.stringify(p[1] || null)),
-      });
-      const values = [];
-      for (const item of result as (string | string[])[]) {
-        if (typeof item === "number" || typeof item === "string") {
-          values.push(!!+item);
-        } else if (Array.isArray(item)) {
-          const obj: Record<string, boolean> = {};
-          for (let i = 0; i < item.length; i += 2)
-            obj[item[i]] = !!+item[i + 1];
-          values.push(obj);
-        } else {
-          values.push(null);
+    this.existsExe = TOOLS.CreateBatchProcessor({
+      delayInMs: timeout,
+      async implementation(cmds) {
+        const result = await client.eval(luaScripts.exists, {
+          keys: cmds.map((p) => p[0]),
+          arguments: cmds.map((p) => JSON.stringify(p[1] || null)),
+        });
+        const values = [];
+        for (const item of result as (string | string[])[]) {
+          if (typeof item === "number" || typeof item === "string") {
+            values.push(!!+item);
+          } else if (Array.isArray(item)) {
+            const obj: Record<string, boolean> = {};
+            for (let i = 0; i < item.length; i += 2)
+              obj[item[i]] = !!+item[i + 1];
+            values.push(obj);
+          } else {
+            values.push(null);
+          }
         }
-      }
-      return values;
+        return values;
+      },
     });
-    this.readExe = TOOLS.CreateBatchProcessor(timeout, async function (cmds) {
-      const result = await client.eval(luaScripts.read, {
-        keys: cmds.map((p) => p[0]),
-        arguments: cmds.map((p) => JSON.stringify(p[1] || null)),
-      });
-      const values = [];
-      for (const item of result as (string | string[])[]) {
-        if (typeof item === "string") {
-          values.push(item);
-        } else if (Array.isArray(item)) {
-          const obj: Record<string, string> = {};
-          for (let i = 0; i < item.length; i += 2) obj[item[i]] = item[i + 1];
-          values.push(obj);
-        } else {
-          values.push(null);
+    this.readExe = TOOLS.CreateBatchProcessor({
+      delayInMs: timeout,
+      async implementation(cmds) {
+        const result = await client.eval(luaScripts.read, {
+          keys: cmds.map((p) => p[0]),
+          arguments: cmds.map((p) => JSON.stringify(p[1] || null)),
+        });
+        const values = [];
+        for (const item of result as (string | string[])[]) {
+          if (typeof item === "string") {
+            values.push(item);
+          } else if (Array.isArray(item)) {
+            const obj: Record<string, string> = {};
+            for (let i = 0; i < item.length; i += 2) obj[item[i]] = item[i + 1];
+            values.push(obj);
+          } else {
+            values.push(null);
+          }
         }
-      }
-      return values;
+        return values;
+      },
     });
-    this.writeExe = TOOLS.CreateBatchProcessor(timeout, async function (cmds) {
-      await client.eval(luaScripts.write, {
-        keys: cmds.map((x) => x[0]),
-        arguments: cmds.map((x) => [x[1], x[2]]).map((x) => JSON.stringify(x)),
-      });
-      return Array(cmds.length);
+    this.writeExe = TOOLS.CreateBatchProcessor({
+      delayInMs: timeout,
+      async implementation(cmds) {
+        await client.eval(luaScripts.write, {
+          keys: cmds.map((x) => x[0]),
+          arguments: cmds
+            .map((x) => [x[1], x[2]])
+            .map((x) => JSON.stringify(x)),
+        });
+        return Array(cmds.length);
+      },
     });
-    this.removeExe = TOOLS.CreateBatchProcessor(timeout, async function (cmds) {
-      await client.eval(luaScripts.remove, {
-        keys: cmds.map((p) => p[0]),
-        arguments: cmds.map((p) => JSON.stringify(p[1] || null)),
-      });
-      return Array(cmds.length);
+    this.removeExe = TOOLS.CreateBatchProcessor({
+      delayInMs: timeout,
+      async implementation(cmds) {
+        await client.eval(luaScripts.remove, {
+          keys: cmds.map((p) => p[0]),
+          arguments: cmds.map((p) => JSON.stringify(p[1] || null)),
+        });
+        return Array(cmds.length);
+      },
     });
   }
-  override async existsKey(
-    context: FUNCTIONS.Context,
-    key: CACHE.KEY,
-    log?: boolean
-  ): Promise<boolean> {
+  override async existsKey({
+    context,
+    key,
+    log,
+  }: {
+    context: FUNCTIONS.Context;
+    key: CACHE.KEY;
+    log?: boolean;
+  }): Promise<boolean> {
     const timer = time();
     let Err = undefined;
     const value = await this.existsExe([key.toString(), undefined]).catch(
@@ -311,12 +329,17 @@ return {allowed, currentValue}
     if (value === null || typeof value !== "boolean") return false;
     return value;
   }
-  override async existsHashFields(
-    context: FUNCTIONS.Context,
-    key: CACHE.KEY,
-    fields: CACHE.AllFields | CACHE.KEY[],
-    log?: boolean
-  ): Promise<Record<string, boolean>> {
+  override async existsHashFields({
+    context,
+    fields,
+    key,
+    log,
+  }: {
+    context: FUNCTIONS.Context;
+    key: CACHE.KEY;
+    fields: CACHE.AllFields | CACHE.KEY[];
+    log?: boolean;
+  }): Promise<Record<string, boolean>> {
     const timer = time();
     let Err = undefined;
     const value = await this.existsExe([
@@ -337,11 +360,15 @@ return {allowed, currentValue}
     return value;
   }
 
-  override async readKey<T>(
-    context: FUNCTIONS.Context,
-    key: CACHE.KEY,
-    log?: boolean
-  ): Promise<T | undefined> {
+  override async readKey<T>({
+    context,
+    key,
+    log,
+  }: {
+    context: FUNCTIONS.Context;
+    key: CACHE.KEY;
+    log?: boolean;
+  }): Promise<T | undefined> {
     const timer = time();
     let Err = undefined;
     const value = await this.readExe([key.toString(), undefined]).catch(
@@ -360,12 +387,17 @@ return {allowed, currentValue}
     if (value === null || typeof value !== "string") return undefined;
     return this.opt.decode(value);
   }
-  override async readHashFields<T extends Record<string, unknown>>(
-    context: FUNCTIONS.Context,
-    key: CACHE.KEY,
-    fields: CACHE.AllFields | CACHE.KEY[],
-    log?: boolean
-  ): Promise<Partial<T>> {
+  override async readHashFields<T extends Record<string, unknown>>({
+    context,
+    fields,
+    key,
+    log,
+  }: {
+    context: FUNCTIONS.Context;
+    key: CACHE.KEY;
+    fields: CACHE.AllFields | CACHE.KEY[];
+    log?: boolean;
+  }): Promise<Partial<T>> {
     const timer = time();
     let Err = undefined;
     const value = await this.readExe([
@@ -392,13 +424,19 @@ return {allowed, currentValue}
     return ret;
   }
 
-  override async writeKey<T>(
-    context: FUNCTIONS.Context,
-    key: CACHE.KEY,
-    value: T | Promise<T>,
-    expire: number,
-    log?: boolean
-  ): Promise<void> {
+  override async writeKey<T>({
+    context,
+    expire,
+    key,
+    value,
+    log,
+  }: {
+    context: FUNCTIONS.Context;
+    key: CACHE.KEY;
+    value: T | Promise<T>;
+    expire: number;
+    log?: boolean;
+  }): Promise<void> {
     let awaitedValue: T;
     try {
       awaitedValue = await value;
@@ -420,13 +458,19 @@ return {allowed, currentValue}
       );
     }
   }
-  override async writeHashFields<T extends Record<string, unknown>>(
-    context: FUNCTIONS.Context,
-    key: CACHE.KEY,
-    value: Promise<T> | { [k in keyof T]: Promise<T[k]> | T[k] },
-    expire: number,
-    log?: boolean
-  ): Promise<void> {
+  override async writeHashFields<T extends Record<string, unknown>>({
+    context,
+    expire,
+    key,
+    value,
+    log,
+  }: {
+    context: FUNCTIONS.Context;
+    key: CACHE.KEY;
+    value: Promise<T> | { [k in keyof T]: Promise<T[k]> | T[k] };
+    expire: number;
+    log?: boolean;
+  }): Promise<void> {
     let awaitedValue: T;
     try {
       awaitedValue = (
@@ -470,11 +514,15 @@ return {allowed, currentValue}
     }
   }
 
-  override async removeKey(
-    context: FUNCTIONS.Context,
-    key: CACHE.KEY,
-    log?: boolean
-  ): Promise<void> {
+  override async removeKey({
+    context,
+    key,
+    log,
+  }: {
+    context: FUNCTIONS.Context;
+    key: CACHE.KEY;
+    log?: boolean;
+  }): Promise<void> {
     const timer = time();
     let Err = undefined;
     await this.removeExe([key.toString(), undefined]).catch((err) => {
@@ -488,12 +536,17 @@ return {allowed, currentValue}
       );
     }
   }
-  override async removeHashFields(
-    context: FUNCTIONS.Context,
-    key: CACHE.KEY,
-    fields: CACHE.AllFields | CACHE.KEY[],
-    log?: boolean
-  ): Promise<void> {
+  override async removeHashFields({
+    context,
+    fields,
+    key,
+    log,
+  }: {
+    context: FUNCTIONS.Context;
+    key: CACHE.KEY;
+    fields: CACHE.AllFields | CACHE.KEY[];
+    log?: boolean;
+  }): Promise<void> {
     const timer = time();
     let Err = undefined;
     await this.removeExe([
@@ -511,11 +564,15 @@ return {allowed, currentValue}
     }
   }
 
-  async increment(
-    context: FUNCTIONS.Context,
-    controller: CACHE.CacheController | null,
-    params: { key: string; incrBy: number; maxLimit?: number; expiry?: number }
-  ): Promise<{ allowed: boolean; value: number }> {
+  async increment({
+    context,
+    controller,
+    params,
+  }: {
+    context: FUNCTIONS.Context;
+    controller: CACHE.CacheController | null;
+    params: { key: string; incrBy: number; maxLimit?: number; expiry?: number };
+  }): Promise<{ allowed: boolean; value: number }> {
     if (controller) {
       if (controller.client !== this)
         throw new Error("Invalid usage of Controller!");

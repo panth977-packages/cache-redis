@@ -1,29 +1,25 @@
 {
   "version": "4",
   "specifiers": {
-    "jsr:@panth977/cache@0.2": "0.2.2",
-    "jsr:@panth977/functions@0.2": "0.2.0",
-    "jsr:@panth977/tools@0.2": "0.2.0",
+    "jsr:@panth977/cache@~0.2.4": "0.2.4",
+    "jsr:@panth977/functions@~0.2.5": "0.2.5",
+    "jsr:@panth977/tools@~0.2.1": "0.2.1",
     "npm:@types/node@*": "22.5.4",
-    "npm:redis@^4.6.13": "4.7.0_@redis+client@1.6.0",
-    "npm:zod@^3.23.8": "3.23.8"
+    "npm:crypto@1": "1.0.1",
+    "npm:redis@^4.6.0": "4.7.0_@redis+client@1.6.0"
   },
   "jsr": {
-    "@panth977/cache@0.2.2": {
-      "integrity": "583e51a0f736117b304e3adfe02d4a47877435643052a5ecaf943e265343fd6e",
+    "@panth977/cache@0.2.4": {
+      "integrity": "86c5b712884512ea0485f7ab5c2db67c3d32db87928c22861670e3a786a75865"
+    },
+    "@panth977/functions@0.2.5": {
+      "integrity": "0c23d9da7d490e861fc2983e6a3441094fcaebe7c687e4317972d73d4ce74797",
       "dependencies": [
-        "jsr:@panth977/functions",
-        "npm:zod"
+        "npm:crypto"
       ]
     },
-    "@panth977/functions@0.2.0": {
-      "integrity": "0715c6e3e1d335dd235f9f2dda9b4fbb3061ee8fa2152e7e9e80e6e6a8833c09",
-      "dependencies": [
-        "npm:zod"
-      ]
-    },
-    "@panth977/tools@0.2.0": {
-      "integrity": "b98c7aa35fe0c074b35b67173c05ad0f98ec70a1bfaff5557b56f86590d9e8ee"
+    "@panth977/tools@0.2.1": {
+      "integrity": "9eaaa9db0c6583260674cd3cccb6671ae6dba790f3368193b72f88c12df6e854"
     }
   },
   "npm": {
@@ -74,6 +70,9 @@
     "cluster-key-slot@1.1.2": {
       "integrity": "sha512-RMr0FhtfXemyinomL4hrWcYJxmX6deFdCxpJzhDttxgO1+bcCnkk+9drydLVDmAMG7NE6aN/fl4F7ucU/90gAA=="
     },
+    "crypto@1.0.1": {
+      "integrity": "sha512-VxBKmeNcqQdiUQUW2Tzq0t377b54N2bMtXO/qiLa+6eRRmmC4qT3D4OnTGoT/U6O9aklQ/jTwbOtRMTTY8G0Ig=="
+    },
     "generic-pool@3.9.0": {
       "integrity": "sha512-hymDOu5B53XvN4QT9dBmZxPX4CWhBPPLguTZ9MMFeFa/Kg0xWVfylOVNlJji/E7yTZWFd/q9GO5TxDLq156D7g=="
     },
@@ -93,17 +92,14 @@
     },
     "yallist@4.0.0": {
       "integrity": "sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A=="
-    },
-    "zod@3.23.8": {
-      "integrity": "sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g=="
     }
   },
   "workspace": {
     "dependencies": [
-      "jsr:@panth977/cache@0.2",
-      "jsr:@panth977/functions@0.2",
-      "jsr:@panth977/tools@0.2",
-      "npm:redis@^4.6.13"
+      "jsr:@panth977/cache@~0.2.4",
+      "jsr:@panth977/functions@~0.2.5",
+      "jsr:@panth977/tools@~0.2.1",
+      "npm:redis@^4.6.0"
     ]
   }
 }
