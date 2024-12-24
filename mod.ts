@@ -506,7 +506,7 @@ return {allowed, currentValue}
     });
     if (log) {
       context.log(
-        `(${timer()} ms) ${this.name}.read(${key}, [${
+        `(${timer()} ms) ${this.name}.write(${key}, [${
           //
           Object.keys(awaitedValue)
         }]) ${Err === undefined ? `✅` : `❌: ${Err}`}`
@@ -557,7 +557,7 @@ return {allowed, currentValue}
     });
     if (log) {
       context.log(
-        `(${timer()} ms) ${this.name}.read(${key}, ${
+        `(${timer()} ms) ${this.name}.remove(${key}, ${
           fields === "*" ? "*" : `[${fields}]`
         }) ${Err === undefined ? `✅` : `❌: ${Err}`}`
       );
