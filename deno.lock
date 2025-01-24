@@ -1,29 +1,30 @@
 {
   "version": "4",
   "specifiers": {
-    "jsr:@panth977/cache@~0.2.6": "0.2.6",
-    "jsr:@panth977/functions@0.2": "0.2.8",
-    "jsr:@panth977/functions@~0.2.8": "0.2.8",
-    "jsr:@panth977/tools@~0.2.2": "0.2.2",
+    "jsr:@panth977/cache@~0.2.12": "0.2.12",
+    "jsr:@panth977/functions@0.2": "0.2.12",
+    "jsr:@panth977/tools@0.2": "0.2.6",
     "npm:@types/node@*": "22.5.4",
     "npm:crypto@1": "1.0.1",
-    "npm:redis@^4.6.0": "4.7.0_@redis+client@1.6.0"
+    "npm:redis@^4.6.0": "4.7.0_@redis+client@1.6.0",
+    "npm:zod@^3.23.0": "3.23.8"
   },
   "jsr": {
-    "@panth977/cache@0.2.6": {
-      "integrity": "d0024f17a35981c58865f792f54bc7ccfef6413972c74f80288311d4b64c7b9e",
+    "@panth977/cache@0.2.12": {
+      "integrity": "0368c1b6042760c0358ae5e32049619084c07225eb635f71631cf612de0e1511",
       "dependencies": [
-        "jsr:@panth977/functions@0.2"
+        "jsr:@panth977/functions"
       ]
     },
-    "@panth977/functions@0.2.8": {
-      "integrity": "3b9c1ddbe9430c5a7cc94eab858917d10db268169e550d19e4fa8bac98462673",
+    "@panth977/functions@0.2.12": {
+      "integrity": "eb089ae5b20faf9b3d5f323221af3f01ebe3b27d5eb93e9ce3091e34d31c144b",
       "dependencies": [
-        "npm:crypto"
+        "npm:crypto",
+        "npm:zod"
       ]
     },
-    "@panth977/tools@0.2.2": {
-      "integrity": "b35616460e093b4d79b965aea1c99904ac298f37368b83e06865ebeaff9de2ab"
+    "@panth977/tools@0.2.6": {
+      "integrity": "a4c96137ccdd7e6cb4133eb393cb86a93424a4a6fcc09fe6d4e7fca1b2358923"
     }
   },
   "npm": {
@@ -96,13 +97,16 @@
     },
     "yallist@4.0.0": {
       "integrity": "sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A=="
+    },
+    "zod@3.23.8": {
+      "integrity": "sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g=="
     }
   },
   "workspace": {
     "dependencies": [
-      "jsr:@panth977/cache@~0.2.6",
-      "jsr:@panth977/functions@~0.2.8",
-      "jsr:@panth977/tools@~0.2.2",
+      "jsr:@panth977/cache@~0.2.12",
+      "jsr:@panth977/functions@0.2",
+      "jsr:@panth977/tools@0.2",
       "npm:redis@^4.6.0"
     ]
   }

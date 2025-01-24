@@ -307,7 +307,7 @@ return {allowed, currentValue}
     key,
     log,
   }: {
-    context: FUNCTIONS.Context;
+    context?: FUNCTIONS.Context;
     key: CACHE.KEY;
     log?: boolean;
   }): Promise<boolean> {
@@ -320,7 +320,7 @@ return {allowed, currentValue}
       }
     );
     if (log) {
-      context.log(
+      (context ?? console).log(
         `(${timer()} ms) ${this.name}.exists(${key}) ${
           Err === undefined ? `✅` : `❌: ${Err}`
         }`
@@ -335,7 +335,7 @@ return {allowed, currentValue}
     key,
     log,
   }: {
-    context: FUNCTIONS.Context;
+    context?: FUNCTIONS.Context;
     key: CACHE.KEY;
     fields: CACHE.AllFields | CACHE.KEY[];
     log?: boolean;
@@ -350,7 +350,7 @@ return {allowed, currentValue}
       return {};
     });
     if (log) {
-      context.log(
+      (context ?? console).log(
         `(${timer()} ms) ${this.name}.exists(${key}, ${
           fields === "*" ? "*" : `[${fields}]`
         }) ${Err === undefined ? `✅` : `❌: ${Err}`}`
@@ -365,7 +365,7 @@ return {allowed, currentValue}
     key,
     log,
   }: {
-    context: FUNCTIONS.Context;
+    context?: FUNCTIONS.Context;
     key: CACHE.KEY;
     log?: boolean;
   }): Promise<T | undefined> {
@@ -378,7 +378,7 @@ return {allowed, currentValue}
       }
     );
     if (log) {
-      context.log(
+      (context ?? console).log(
         `(${timer()} ms) ${this.name}.read(${key}) ${
           Err === undefined ? `✅` : `❌: ${Err}`
         }`
@@ -393,7 +393,7 @@ return {allowed, currentValue}
     key,
     log,
   }: {
-    context: FUNCTIONS.Context;
+    context?: FUNCTIONS.Context;
     key: CACHE.KEY;
     fields: CACHE.AllFields | CACHE.KEY[];
     log?: boolean;
@@ -408,7 +408,7 @@ return {allowed, currentValue}
       return {} as Record<string, string>;
     });
     if (log) {
-      context.log(
+      (context ?? console).log(
         `(${timer()} ms) ${this.name}.read(${key}, ${
           fields === "*" ? "*" : `[${fields}]`
         }) ${Err === undefined ? `✅` : `❌: ${Err}`}`
@@ -431,7 +431,7 @@ return {allowed, currentValue}
     value,
     log,
   }: {
-    context: FUNCTIONS.Context;
+    context?: FUNCTIONS.Context;
     key: CACHE.KEY;
     value: T | Promise<T>;
     expire: number;
@@ -451,7 +451,7 @@ return {allowed, currentValue}
       Err = err ?? null;
     });
     if (log) {
-      context.log(
+      (context ?? console).log(
         `(${timer()} ms) ${this.name}.write(${key}) ${
           Err === undefined ? `✅` : `❌: ${Err}`
         }`
@@ -465,7 +465,7 @@ return {allowed, currentValue}
     value,
     log,
   }: {
-    context: FUNCTIONS.Context;
+    context?: FUNCTIONS.Context;
     key: CACHE.KEY;
     value: Promise<T> | { [k in keyof T]: Promise<T[k]> | T[k] };
     expire: number;
@@ -505,7 +505,7 @@ return {allowed, currentValue}
       Err = err ?? null;
     });
     if (log) {
-      context.log(
+      (context ?? console).log(
         `(${timer()} ms) ${this.name}.write(${key}, [${
           //
           Object.keys(awaitedValue)
@@ -519,7 +519,7 @@ return {allowed, currentValue}
     key,
     log,
   }: {
-    context: FUNCTIONS.Context;
+    context?: FUNCTIONS.Context;
     key: CACHE.KEY;
     log?: boolean;
   }): Promise<void> {
@@ -529,7 +529,7 @@ return {allowed, currentValue}
       Err = err ?? null;
     });
     if (log) {
-      context.log(
+      (context ?? console).log(
         `(${timer()} ms) ${this.name}.remove(${key}) ${
           Err === undefined ? `✅` : `❌: ${Err}`
         }`
@@ -542,7 +542,7 @@ return {allowed, currentValue}
     key,
     log,
   }: {
-    context: FUNCTIONS.Context;
+    context?: FUNCTIONS.Context;
     key: CACHE.KEY;
     fields: CACHE.AllFields | CACHE.KEY[];
     log?: boolean;
@@ -556,7 +556,7 @@ return {allowed, currentValue}
       Err = err ?? null;
     });
     if (log) {
-      context.log(
+      (context ?? console).log(
         `(${timer()} ms) ${this.name}.remove(${key}, ${
           fields === "*" ? "*" : `[${fields}]`
         }) ${Err === undefined ? `✅` : `❌: ${Err}`}`
@@ -569,7 +569,7 @@ return {allowed, currentValue}
     controller,
     params,
   }: {
-    context: FUNCTIONS.Context;
+    context?: FUNCTIONS.Context;
     controller: CACHE.CacheController | null;
     params: { key: string; incrBy: number; maxLimit?: number; expiry?: number };
   }): Promise<{ allowed: boolean; value: number }> {
@@ -604,7 +604,7 @@ return {allowed, currentValue}
       if (!isErr && !controller?.log) break log;
       let query = `(${timeTaken} ms) ++ ${this.name}.incr(${params.incrBy}, max: ${params.maxLimit})`;
       query += `\n\t.at(${params.key}): ${isErr ? "❌" : "✅"}`;
-      context.log(query, ...(isErr ? [error] : []));
+      (context ?? console).log(query, ...(isErr ? [error] : []));
     }
     return { allowed: !!result[0], value: +(result[1] as string | number) };
   }
