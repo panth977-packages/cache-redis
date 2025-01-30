@@ -135,7 +135,7 @@ for i, key in ipairs(KEYS) do
     end
     redis.call('set', key, value)
     if exp > 0 then
-      redis.call('expire', key, exp)
+      redis.call('expiry', key, exp)
     end
 
   elseif type(value) == "table" then
@@ -146,7 +146,7 @@ for i, key in ipairs(KEYS) do
       redis.call('hset', key, field, fieldValue)
     end
     if exp > 0 then 
-      redis.call('expire', key, exp)
+      redis.call('expiry', key, exp)
     end
   end
 end
@@ -169,22 +169,46 @@ end
 return 1
   `,
   increment: `
-local key = KEYS[1]
-local incrBy = tonumber(ARGV[1])
-local maxLimit = tonumber(ARGV[2])
-local expirySec = tonumber(ARGV[3])
-local currentValue = tonumber(redis.call('GET', key) or '0')
-local allowed = 1
-if maxLimit and maxLimit > 0 and currentValue + incrBy > maxLimit then
-  allowed = 0
+local results = {}
+for i, key in ipairs(KEYS) do
+    local args = cjson.decode(ARGV[i])
+    local field = args[1]
+    local incrBy = tonumber(args[2])
+    local maxLimit = tonumber(args[3])
+    local expirySec = tonumber(args[4])
+    local currentValue
+
+    if field == null then
+        -- Simple key
+        currentValue = tonumber(redis.call('GET', key) or '0')
+        local allowed = 1
+        if maxLimit and maxLimit > 0 and currentValue + incrBy > maxLimit then
+            allowed = 0
+        end
+        if allowed == 1 then
+            currentValue = redis.call('INCRBY', key, incrBy)
+            if expirySec and expirySec > 0 then
+                redis.call('EXPIRE', key, expirySec)
+            end
+        end
+        table.insert(results, {allowed, currentValue})
+    else
+        -- Hash field
+        currentValue = tonumber(redis.call('HGET', key, field) or '0')
+        local allowed = 1
+        if maxLimit and maxLimit > 0 and currentValue + incrBy > maxLimit then
+            allowed = 0
+        end
+        if allowed == 1 then
+            currentValue = redis.call('HINCRBY', key, field, incrBy)
+            if expirySec and expirySec > 0 then
+                redis.call('EXPIRE', key, expirySec)
+            end
+        end
+        table.insert(results, {allowed, currentValue})
+    end
 end
-if allowed == 1 then
-  currentValue = redis.call('INCRBY', key, incrBy)
-  if expirySec and expirySec > 0 then
-    redis.call('EXPIRE', key, expirySec)
-  end
-end
-return {allowed, currentValue}
+return results
   `,
 };
 
@@ -208,6 +232,9 @@ return {allowed, currentValue}
   readonly removeExe: (
     cmd: [string, string[] | "*" | undefined]
   ) => Promise<void>;
+  readonly incrementExe: (
+    cmd: [string, string | null, number, number | null, number]
+  ) => Promise<[boolean, number]>;
   readonly opt: {
     decode: <T>(val: string) => T;
     encode: <T>(val: T) => string;
@@ -284,9 +311,7 @@ return {allowed, currentValue}
       async implementation(cmds) {
         await client.eval(luaScripts.write, {
           keys: cmds.map((x) => x[0]),
-          arguments: cmds
-            .map((x) => [x[1], x[2]])
-            .map((x) => JSON.stringify(x)),
+          arguments: cmds.map((x) => JSON.stringify([x[1], x[2]])),
         });
         return Array(cmds.length);
       },
@@ -299,6 +324,16 @@ return {allowed, currentValue}
           arguments: cmds.map((p) => JSON.stringify(p[1] || null)),
         });
         return Array(cmds.length);
+      },
+    });
+    this.incrementExe = TOOLS.CreateBatchProcessor({
+      delayInMs: timeout,
+      async implementation(cmds) {
+        const result = await client.eval(luaScripts.increment, {
+          keys: cmds.map((p) => p[0]),
+          arguments: cmds.map((p) => JSON.stringify([p[1], p[2], p[3], p[4]])),
+        });
+        return (result as [number, number][]).map((x) => [!!x[0], x[1]]);
       },
     });
   }
@@ -426,7 +461,7 @@ return {allowed, currentValue}
 
   override async writeKey<T>({
     context,
-    expire,
+    expiry,
     key,
     value,
     log,
@@ -434,7 +469,7 @@ return {allowed, currentValue}
     context?: FUNCTIONS.Context;
     key: CACHE.KEY;
     value: T | Promise<T>;
-    expire: number;
+    expiry: number;
     log?: boolean;
   }): Promise<void> {
     let awaitedValue: T;
@@ -447,7 +482,7 @@ return {allowed, currentValue}
     const timer = time();
     let Err = undefined;
     const val = this.opt.encode(awaitedValue);
-    await this.writeExe([key.toString(), val, expire]).catch((err) => {
+    await this.writeExe([key.toString(), val, expiry]).catch((err) => {
       Err = err ?? null;
     });
     if (log) {
@@ -460,7 +495,7 @@ return {allowed, currentValue}
   }
   override async writeHashFields<T extends Record<string, unknown>>({
     context,
-    expire,
+    expiry,
     key,
     value,
     log,
@@ -468,7 +503,7 @@ return {allowed, currentValue}
     context?: FUNCTIONS.Context;
     key: CACHE.KEY;
     value: Promise<T> | { [k in keyof T]: Promise<T[k]> | T[k] };
-    expire: number;
+    expiry: number;
     log?: boolean;
   }): Promise<void> {
     let awaitedValue: T;
@@ -500,7 +535,7 @@ return {allowed, currentValue}
           this.opt.encode(awaitedValue[key]),
         ])
       ),
-      expire,
+      expiry,
     ]).catch((err) => {
       Err = err ?? null;
     });
@@ -563,49 +598,78 @@ return {allowed, currentValue}
       );
     }
   }
-
-  async increment({
+  override async incrementKey({
+    expiry,
+    incrBy,
+    key,
     context,
-    controller,
-    params,
+    log,
+    maxLimit,
   }: {
     context?: FUNCTIONS.Context;
-    controller: CACHE.CacheController | null;
-    params: { key: string; incrBy: number; maxLimit?: number; expiry?: number };
+    key: CACHE.KEY;
+    incrBy: number;
+    maxLimit?: number;
+    expiry: number;
+    log?: boolean;
   }): Promise<{ allowed: boolean; value: number }> {
-    if (controller) {
-      if (controller.client !== this)
-        throw new Error("Invalid usage of Controller!");
-      params.key = controller.getKey(params.key);
-      if (!controller.can("increment")) return { allowed: false, value: 0 };
+    const timer = time();
+    let Err = undefined;
+    const [allowed, value] = await this.incrementExe([
+      key.toString(),
+      null,
+      incrBy,
+      maxLimit ?? null,
+      expiry,
+    ]).catch((err) => {
+      Err = err ?? null;
+      return [false, 0] as const;
+    });
+    if (log) {
+      (context ?? console).log(
+        `(${timer()} ms) ${this.name}.increment(${key}) ${
+          Err === undefined ? `✅` : `❌: ${Err}`
+        }`
+      );
     }
-    if (controller && params.expiry === undefined)
-      params.expiry = controller.defaultExpiry;
-    let error: unknown;
-    const start = Date.now();
-    const result = await this.client
-      .eval(luaScripts.increment, {
-        keys: [params.key],
-        arguments: [
-          `${params.incrBy}`,
-          `${params.maxLimit || 0}`,
-          `${params.expiry || 0}`,
-        ],
-      })
-      .catch((err) => {
-        error = err;
-        return { allowed: false, value: 0 };
-      });
-    const timeTaken = Date.now() - start;
-    if (!Array.isArray(result) || result.length !== 2)
-      throw new Error("Unexpected response from Redis script!");
-    log: {
-      const isErr = error !== undefined;
-      if (!isErr && !controller?.log) break log;
-      let query = `(${timeTaken} ms) ++ ${this.name}.incr(${params.incrBy}, max: ${params.maxLimit})`;
-      query += `\n\t.at(${params.key}): ${isErr ? "❌" : "✅"}`;
-      (context ?? console).log(query, ...(isErr ? [error] : []));
+    return { allowed, value };
+  }
+  override async incrementHashField({
+    expiry,
+    incrBy,
+    key,
+    field,
+    context,
+    log,
+    maxLimit,
+  }: {
+    context?: FUNCTIONS.Context;
+    key: CACHE.KEY;
+    field: CACHE.KEY;
+    incrBy: number;
+    maxLimit?: number;
+    expiry: number;
+    log?: boolean;
+  }): Promise<{ allowed: boolean; value: number }> {
+    const timer = time();
+    let Err = undefined;
+    const [allowed, value] = await this.incrementExe([
+      key.toString(),
+      field.toString(),
+      incrBy,
+      maxLimit ?? null,
+      expiry,
+    ]).catch((err) => {
+      Err = err ?? null;
+      return [false, 0] as const;
+    });
+    if (log) {
+      (context ?? console).log(
+        `(${timer()} ms) ${this.name}.increment(${key}, ${field}) ${
+          Err === undefined ? `✅` : `❌: ${Err}`
+        }`
+      );
     }
-    return { allowed: !!result[0], value: +(result[1] as string | number) };
+    return { allowed, value };
   }
 }
