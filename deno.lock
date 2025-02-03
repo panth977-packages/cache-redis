@@ -1,17 +1,19 @@
 {
   "version": "4",
   "specifiers": {
-    "jsr:@panth977/cache@~0.2.24": "0.2.24",
+    "jsr:@panth977/cache@0.2": "0.2.26",
     "jsr:@panth977/functions@0.2": "0.2.12",
     "jsr:@panth977/tools@0.2": "0.2.6",
     "npm:@types/node@*": "22.5.4",
     "npm:crypto@1": "1.0.1",
+    "npm:fs@^0.0.1-security": "0.0.1-security",
+    "npm:path@~0.12.7": "0.12.7",
     "npm:redis@^4.6.0": "4.7.0_@redis+client@1.6.0",
     "npm:zod@^3.23.0": "3.23.8"
   },
   "jsr": {
-    "@panth977/cache@0.2.24": {
-      "integrity": "140dbea962a7529e148d1836e5313a42b71922a8b1fc36bf722a37c30c923123",
+    "@panth977/cache@0.2.26": {
+      "integrity": "223fa3568a26fa26afde7f58327073408e6422b93bb1799d044c53ea4d52a6b5",
       "dependencies": [
         "jsr:@panth977/functions"
       ]
@@ -78,8 +80,24 @@
     "crypto@1.0.1": {
       "integrity": "sha512-VxBKmeNcqQdiUQUW2Tzq0t377b54N2bMtXO/qiLa+6eRRmmC4qT3D4OnTGoT/U6O9aklQ/jTwbOtRMTTY8G0Ig=="
     },
+    "fs@0.0.1-security": {
+      "integrity": "sha512-3XY9e1pP0CVEUCdj5BmfIZxRBTSDycnbqhIOGec9QYtmVH2fbLpj86CFWkrNOkt/Fvty4KZG5lTglL9j/gJ87w=="
+    },
     "generic-pool@3.9.0": {
       "integrity": "sha512-hymDOu5B53XvN4QT9dBmZxPX4CWhBPPLguTZ9MMFeFa/Kg0xWVfylOVNlJji/E7yTZWFd/q9GO5TxDLq156D7g=="
+    },
+    "inherits@2.0.3": {
+      "integrity": "sha512-x00IRNXNy63jwGkJmzPigoySHbaqpNuzKbBOmzK+g2OdZpQ9w+sxCN+VSB3ja7IAge2OP2qpfxTjeNcyjmW1uw=="
+    },
+    "path@0.12.7": {
+      "integrity": "sha512-aXXC6s+1w7otVF9UletFkFcDsJeO7lSZBPUQhtb5O0xJe8LtYhj/GxldoL09bBj9+ZmE2hNoHqQSFMN5fikh4Q==",
+      "dependencies": [
+        "process",
+        "util"
+      ]
+    },
+    "process@0.11.10": {
+      "integrity": "sha512-cdGef/drWFoydD1JsMzuFf8100nZl+GT+yacc2bEced5f9Rjk4z+WtFUTBu9PhOi9j/jfmBPu0mMEY4wIdAF8A=="
     },
     "redis@4.7.0_@redis+client@1.6.0": {
       "integrity": "sha512-zvmkHEAdGMn+hMRXuMBtu4Vo5P6rHQjLoHftu+lBqq8ZTA3RCVC/WzD790bkKKiNFp7d5/9PcSD19fJyyRvOdQ==",
@@ -95,6 +113,12 @@
     "undici-types@6.19.8": {
       "integrity": "sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw=="
     },
+    "util@0.10.4": {
+      "integrity": "sha512-0Pm9hTQ3se5ll1XihRic3FDIku70C+iHUdT/W926rSgHV5QgXsYbKZN8MSC3tJtSkhuROzvsQjAaFENRXr+19A==",
+      "dependencies": [
+        "inherits"
+      ]
+    },
     "yallist@4.0.0": {
       "integrity": "sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A=="
     },
@@ -104,9 +128,11 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@panth977/cache@~0.2.24",
+      "jsr:@panth977/cache@0.2",
       "jsr:@panth977/functions@0.2",
       "jsr:@panth977/tools@0.2",
+      "npm:fs@^0.0.1-security",
+      "npm:path@~0.12.7",
       "npm:redis@^4.6.0"
     ]
   }
