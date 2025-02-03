@@ -37,8 +37,9 @@ import type {
 import { CACHE } from "@panth977/cache";
 import type { FUNCTIONS } from "@panth977/functions";
 import { TOOLS } from "@panth977/tools";
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs";
+import * as path from "path";
+import * as url from "url";
 function time() {
   const start = Date.now();
   return function () {
@@ -61,16 +62,20 @@ export function decode<T>(val: string): T {
 export function encode<T>(val: T): string {
   return JSON.stringify(val);
 }
-
+const scriptsDir = (function () {
+  const __filename = url.fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  return path.join(__dirname, "scripts");
+})();
 /**
  * Scripts used for queering redis
  */
 const luaScripts = {
-  exists: fs.readFileSync(path.join(__dirname, 'scripts', 'exists.lua')).toString(),
-  read: fs.readFileSync(path.join(__dirname, 'scripts', 'read.lua')).toString(),
-  write: fs.readFileSync(path.join(__dirname, 'scripts', 'write.lua')).toString(),
-  remove: fs.readFileSync(path.join(__dirname, 'scripts', 'remove.lua')).toString(),
-  increment: fs.readFileSync(path.join(__dirname, 'scripts', 'increment.lua')).toString(),
+  exists: fs.readFileSync(path.join(scriptsDir, "exists.lua")).toString(),
+  read: fs.readFileSync(path.join(scriptsDir, "read.lua")).toString(),
+  write: fs.readFileSync(path.join(scriptsDir, "write.lua")).toString(),
+  remove: fs.readFileSync(path.join(scriptsDir, "remove.lua")).toString(),
+  increment: fs.readFileSync(path.join(scriptsDir, "increment.lua")).toString(),
 };
 
 /**
