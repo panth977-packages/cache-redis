@@ -20,7 +20,7 @@ for i, key in ipairs(KEYS) do
         for field, fieldValue in pairs(value) do
             redis.call('hset', key, field, fieldValue)
         end
-        if exp > 0 then
+        if keyType ~= 'hash' and exp > 0 then
             redis.call('expire', key, exp)
         end
     end
