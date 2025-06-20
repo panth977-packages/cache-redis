@@ -16,12 +16,12 @@
     "lineWidth": 150
   },
   "imports": {
-    "@panth977/cache": "jsr:@panth977/cache@^0.2.x",
-    "@panth977/functions": "jsr:@panth977/functions@^0.2.x",
-    "@panth977/tools": "jsr:@panth977/tools@^0.2.x",
+    "@panth977/cache": "jsr:@panth977/cache@^1.0.x",
+    "@panth977/functions": "jsr:@panth977/functions@^1.0.x",
+    "@panth977/tools": "jsr:@panth977/tools@^1.0.9",
     "fs": "npm:fs@^0.0.1-security",
     "path": "npm:path@^0.12.7",
-    "redis": "npm:redis@^4.6.x",
+    "redis": "npm:redis@^5.5.6",
     "url": "npm:url@^0.11.4"
   }
 }

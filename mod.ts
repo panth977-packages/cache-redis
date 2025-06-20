@@ -1,15 +1,15 @@
 /**
- * Redis Cache Client for CACHE.CacheController
+ * Redis Cache Client for C.CacheController
  *
  * @module
  *
  * @example
  * ```ts
- * import { CACHE } from "@panth977/cache";
+ * import { C } from "@panth977/cache";
  * import { RedisCacheClient } from "@panth977/cache-redis";
  * import * as redis from "redis";
  *
- * const cache = new CACHE.CacheController({
+ * const cache = new C.CacheController({
  *   client: new RedisCacheClient(redis.createClient(), {
  *     decode: JSON.parse,
  *     encode: JSON.stringify,
@@ -27,25 +27,13 @@
  * ```
  */
 
-import type {
-  RedisClientType,
-  RedisDefaultModules,
-  RedisFunctions,
-  RedisModules,
-  RedisScripts,
-} from "redis";
-import { CACHE } from "@panth977/cache";
-import type { FUNCTIONS } from "@panth977/functions";
-import { TOOLS } from "@panth977/tools";
+import type { RedisClientType, RedisDefaultModules, RedisFunctions, RedisModules, RedisScripts } from "redis";
+import { C } from "@panth977/cache";
+import { F } from "@panth977/functions";
+import { T } from "@panth977/tools";
 import * as fs from "fs";
 import * as path from "path";
 import * as url from "url";
-function time() {
-  const start = Date.now();
-  return function () {
-    return Date.now() - start;
-  };
-}
 /**
  * Function to decode the data from redis
  * @param val
@@ -77,465 +65,371 @@ const luaScripts = {
   remove: fs.readFileSync(path.join(scriptsDir, "remove.lua")).toString(),
   increment: fs.readFileSync(path.join(scriptsDir, "increment.lua")).toString(),
 };
+type _RedisDefaultModules_ = RedisDefaultModules & Record<never, never>;
+type _RedisFunctions_ = Record<string, never>;
+type _RedisScripts_ = Record<string, never>;
+
+function buildWithType<A, R>(
+  func: <
+    M extends RedisModules = _RedisDefaultModules_,
+    F extends RedisFunctions = _RedisFunctions_,
+    S extends RedisScripts = _RedisScripts_,
+  >(client: RedisClientType<M, F, S>, cmds: A[]) => Promise<R[]>,
+): <
+  M extends RedisModules = _RedisDefaultModules_,
+  F extends RedisFunctions = _RedisFunctions_,
+  S extends RedisScripts = _RedisScripts_,
+>(client: RedisClientType<M, F, S>, cmds: A[], cb: (r: ["Error", unknown] | ["Data", R[]]) => void) => void {
+  return async function (client, cmds, cb) {
+    try {
+      const result = await func(client, cmds);
+      cb(["Data", result]);
+    } catch (err) {
+      cb(["Error", err]);
+    }
+  };
+}
+
+type ExistsCmd = [string, string[] | "*" | undefined];
+type ExistsRet = boolean | Record<string, boolean> | null;
+const existsExe = buildWithType<ExistsCmd, ExistsRet>(async function (client, cmds) {
+  const result = await client.eval(luaScripts.exists, {
+    keys: cmds.map((p) => p[0]),
+    arguments: cmds.map((p) => JSON.stringify(p[1] || null)),
+  });
+  const values = [];
+  for (const item of result as (string | string[])[]) {
+    if (typeof item === "number" || typeof item === "string") {
+      values.push(!!+item);
+    } else if (Array.isArray(item)) {
+      const obj: Record<string, boolean> = {};
+      for (let i = 0; i < item.length; i += 2) {
+        obj[item[i]] = !!+item[i + 1];
+      }
+      values.push(obj);
+    } else {
+      values.push(null);
+    }
+  }
+  return values;
+});
+
+type ReadCmd = [string, string[] | "*" | undefined];
+type ReadRet = string | Record<string, string> | null;
+const readExe = buildWithType<ReadCmd, ReadRet>(async function (client, cmds) {
+  const result = await client.eval(luaScripts.read, {
+    keys: cmds.map((p) => p[0]),
+    arguments: cmds.map((p) => JSON.stringify(p[1] || null)),
+  });
+  const values = [];
+  for (const item of result as (string | string[])[]) {
+    if (typeof item === "string") {
+      values.push(item);
+    } else if (Array.isArray(item)) {
+      const obj: Record<string, string> = {};
+      for (let i = 0; i < item.length; i += 2) obj[item[i]] = item[i + 1];
+      values.push(obj);
+    } else {
+      values.push(null);
+    }
+  }
+  return values;
+});
+
+type WriteCmd = [string, string | Record<string, string>, number];
+type WriteRet = void;
+const writeExe = buildWithType<WriteCmd, WriteRet>(async function (client, cmds) {
+  await client.eval(luaScripts.write, {
+    keys: cmds.map((x) => x[0]),
+    arguments: cmds.map((x) => JSON.stringify([x[1], x[2]])),
+  });
+  return Array(cmds.length);
+});
+
+type RemoveCmd = [string, string[] | "*" | undefined];
+type RemoveRet = void;
+const removeExe = buildWithType<RemoveCmd, RemoveRet>(async function (client, cmds) {
+  await client.eval(luaScripts.remove, {
+    keys: cmds.map((p) => p[0]),
+    arguments: cmds.map((p) => JSON.stringify(p[1] || null)),
+  });
+  return Array(cmds.length);
+});
+
+type IncrementCmd = [string, string | null, number, number | null, number];
+type IncrementRet = [boolean, number];
+const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (client, cmds) {
+  const result = await client.eval(luaScripts.increment, {
+    keys: cmds.map((p) => p[0]),
+    arguments: cmds.map((p) => JSON.stringify([p[1], p[2], p[3], p[4]])),
+  });
+  return (result as [number, number][]).map((x) => [!!x[0], x[1]]);
+});
 
 /**
- * Use this as a client for CACHE.CacheController
+ * Use this as a client for C.CacheController
  */ export class RedisCacheClient<
-  M extends RedisModules = RedisDefaultModules,
-  F extends RedisFunctions = Record<string, never>,
-  S extends RedisScripts = Record<string, never>
-> extends CACHE.AbstractCacheClient {
-  readonly client: RedisClientType<M, F, S>;
-  readonly existsExe: (
-    cmd: [string, string[] | "*" | undefined]
-  ) => Promise<boolean | Record<string, boolean> | null>;
-  readonly readExe: (
-    cmd: [string, string[] | "*" | undefined]
-  ) => Promise<string | Record<string, string> | null>;
-  readonly writeExe: (
-    cmd: [string, string | Record<string, string>, number]
-  ) => Promise<void>;
-  readonly removeExe: (
-    cmd: [string, string[] | "*" | undefined]
-  ) => Promise<void>;
-  readonly incrementExe: (
-    cmd: [string, string | null, number, number | null, number]
-  ) => Promise<[boolean, number]>;
-  readonly opt: {
-    decode: <T>(val: string) => T;
-    encode: <T>(val: T) => string;
-    delayInMs: number;
-    label: string;
-  };
-
+  M extends RedisModules = _RedisDefaultModules_,
+  F extends RedisFunctions = _RedisFunctions_,
+  S extends RedisScripts = _RedisScripts_,
+> extends C.CacheController {
   constructor(
-    client: RedisClientType<M, F, S>,
-    opt_?: {
-      label?: string;
-      delayInMs?: number;
-      decode?: <T>(val: string) => T;
-      encode?: <T>(val: T) => string;
-    }
+    opt: {
+      name: string;
+      separator: string;
+      expiry: number;
+      prefix: string;
+      log: boolean;
+      mode: "read-write" | "readonly" | "writeonly";
+    },
+    protected redis: {
+      client: RedisClientType<M, F, S>;
+      decode: <T>(val: string) => T;
+      encode: <T>(val: T) => string;
+      delayInMs: number;
+    },
+    protected exe: {
+      exists: T.CreateBatch<ExistsCmd, ExistsRet>;
+      read: T.CreateBatch<ReadCmd, ReadRet>;
+      write: T.CreateBatch<WriteCmd, WriteRet>;
+      remove: T.CreateBatch<RemoveCmd, RemoveRet>;
+      increment: T.CreateBatch<IncrementCmd, IncrementRet>;
+    } = {
+      exists: new T.CreateBatch(existsExe.bind(null, redis.client), redis.delayInMs),
+      read: new T.CreateBatch(readExe.bind(null, redis.client), redis.delayInMs),
+      write: new T.CreateBatch(writeExe.bind(null, redis.client), redis.delayInMs),
+      remove: new T.CreateBatch(removeExe.bind(null, redis.client), redis.delayInMs),
+      increment: new T.CreateBatch(incrementExe.bind(null, redis.client), redis.delayInMs),
+    },
   ) {
-    const opt = {
-      label: opt_?.label ?? "Redis",
-      decode: opt_?.decode ?? decode,
-      delayInMs: opt_?.delayInMs ?? 0,
-      encode: opt_?.encode ?? encode,
-    };
-    super(opt.label);
-    this.client = client;
-    this.opt = opt;
-    const timeout = opt.delayInMs;
-    this.existsExe = TOOLS.CreateBatchProcessor({
-      delayInMs: timeout,
-      async implementation(cmds) {
-        const result = await client.eval(luaScripts.exists, {
-          keys: cmds.map((p) => p[0]),
-          arguments: cmds.map((p) => JSON.stringify(p[1] || null)),
-        });
-        const values = [];
-        for (const item of result as (string | string[])[]) {
-          if (typeof item === "number" || typeof item === "string") {
-            values.push(!!+item);
-          } else if (Array.isArray(item)) {
-            const obj: Record<string, boolean> = {};
-            for (let i = 0; i < item.length; i += 2)
-              obj[item[i]] = !!+item[i + 1];
-            values.push(obj);
-          } else {
-            values.push(null);
-          }
-        }
-        return values;
-      },
-    });
-    this.readExe = TOOLS.CreateBatchProcessor({
-      delayInMs: timeout,
-      async implementation(cmds) {
-        const result = await client.eval(luaScripts.read, {
-          keys: cmds.map((p) => p[0]),
-          arguments: cmds.map((p) => JSON.stringify(p[1] || null)),
-        });
-        const values = [];
-        for (const item of result as (string | string[])[]) {
-          if (typeof item === "string") {
-            values.push(item);
-          } else if (Array.isArray(item)) {
-            const obj: Record<string, string> = {};
-            for (let i = 0; i < item.length; i += 2) obj[item[i]] = item[i + 1];
-            values.push(obj);
-          } else {
-            values.push(null);
-          }
-        }
-        return values;
-      },
-    });
-    this.writeExe = TOOLS.CreateBatchProcessor({
-      delayInMs: timeout,
-      async implementation(cmds) {
-        await client.eval(luaScripts.write, {
-          keys: cmds.map((x) => x[0]),
-          arguments: cmds.map((x) => JSON.stringify([x[1], x[2]])),
-        });
-        return Array(cmds.length);
-      },
-    });
-    this.removeExe = TOOLS.CreateBatchProcessor({
-      delayInMs: timeout,
-      async implementation(cmds) {
-        await client.eval(luaScripts.remove, {
-          keys: cmds.map((p) => p[0]),
-          arguments: cmds.map((p) => JSON.stringify(p[1] || null)),
-        });
-        return Array(cmds.length);
-      },
-    });
-    this.incrementExe = TOOLS.CreateBatchProcessor({
-      delayInMs: timeout,
-      async implementation(cmds) {
-        const result = await client.eval(luaScripts.increment, {
-          keys: cmds.map((p) => p[0]),
-          arguments: cmds.map((p) => JSON.stringify([p[1], p[2], p[3], p[4]])),
-        });
-        return (result as [number, number][]).map((x) => [!!x[0], x[1]]);
-      },
-    });
+    super(opt);
   }
-  override async existsKey({
-    context,
-    key,
-    log,
-  }: {
-    context?: FUNCTIONS.Context;
-    key: CACHE.KEY;
-    log?: boolean;
-  }): Promise<boolean> {
-    const timer = time();
-    let Err = undefined;
-    const value = await this.existsExe([key.toString(), undefined]).catch(
-      (err) => {
-        Err = err ?? null;
-        return false;
-      }
-    );
-    if (log) {
-      (context ?? console).log(
-        `(${timer()} ms) ${this.name}.exists(${key}) ${
-          Err === undefined ? `✅` : `❌: ${Err}`
-        }`
-      );
-    }
-    if (value === null || typeof value !== "boolean") return false;
-    return value;
+  get client(): RedisClientType<M, F, S> {
+    return this.redis.client;
   }
-  override async existsHashFields({
-    context,
-    fields,
-    key,
-    log,
-  }: {
-    context?: FUNCTIONS.Context;
-    key: CACHE.KEY;
-    fields: CACHE.AllFields | CACHE.KEY[];
-    log?: boolean;
-  }): Promise<Record<string, boolean>> {
-    const timer = time();
-    let Err = undefined;
-    const value = await this.existsExe([
-      key.toString(),
-      fields === "*" ? "*" : fields.map((x) => x.toString()),
-    ]).catch((err) => {
-      Err = err ?? null;
-      return {};
-    });
-    if (log) {
-      (context ?? console).log(
-        `(${timer()} ms) ${this.name}.exists(${key}, ${
-          fields === "*" ? "*" : `[${fields}]`
-        }) ${Err === undefined ? `✅` : `❌: ${Err}`}`
-      );
-    }
-    if (value === null || typeof value === "boolean") return {};
-    return value;
+  private logger(context: F.Context, prefix: string, start: number) {
+    context.logMsg(prefix, `${Date.now() - start} ms`);
   }
-
-  override async readKey<T>({
-    context,
-    key,
-    log,
-  }: {
-    context?: FUNCTIONS.Context;
-    key: CACHE.KEY;
-    log?: boolean;
-  }): Promise<T | undefined> {
-    const timer = time();
-    let Err = undefined;
-    const value = await this.readExe([key.toString(), undefined]).catch(
-      (err) => {
-        Err = err ?? null;
-        return null;
-      }
-    );
-    if (log) {
-      (context ?? console).log(
-        `(${timer()} ms) ${this.name}.read(${key}) ${
-          Err === undefined ? `✅` : `❌: ${Err}`
-        }`
-      );
+  private portToCb<T>(logger: null | (() => void), port: F.AsyncCbSender<T>, r: ["Error", unknown] | ["Data", T]): void {
+    logger?.();
+    if (r[0] === "Data") {
+      port.return(r[1]);
+    } else {
+      port.throw(r[1]);
     }
-    if (value === null || typeof value !== "string") return undefined;
-    return this.opt.decode(value);
   }
-  override async readHashFields<T extends Record<string, unknown>>({
-    context,
-    fields,
-    key,
-    log,
-  }: {
-    context?: FUNCTIONS.Context;
-    key: CACHE.KEY;
-    fields: CACHE.AllFields | CACHE.KEY[];
-    log?: boolean;
-  }): Promise<Partial<T>> {
-    const timer = time();
-    let Err = undefined;
-    const value = await this.readExe([
-      key.toString(),
-      fields === "*" ? "*" : fields.map((x) => x.toString()),
-    ]).catch((err) => {
-      Err = err ?? null;
-      return {} as Record<string, string>;
-    });
-    if (log) {
-      (context ?? console).log(
-        `(${timer()} ms) ${this.name}.read(${key}, ${
-          fields === "*" ? "*" : `[${fields}]`
-        }) ${Err === undefined ? `✅` : `❌: ${Err}`}`
-      );
+  protected toReciver<A, R>({ context, exe, logInfo: [logMethod, ...logArgs], arg }: {
+    exe: T.CreateBatch<A, R>;
+    context: F.Context;
+    logInfo: ["exists" | "read" | "write" | "remove" | "increment", ...any[]];
+    arg: A;
+  }): F.AsyncCbReceiver<R> {
+    const timer = this.log ? this.logger.bind(this, context, `${this.name}.${logMethod}(${logArgs})`, Date.now()) : null;
+    const port = new F.AsyncCbSender<R>();
+    try {
+      exe.runJob("cb", arg, (this.portToCb<R>).bind(this, timer, port));
+    } catch (err) {
+      port.throw(err);
     }
-    if (value === null || typeof value === "string") return {};
+    return port.getHandler();
+  }
+  private _exitstsRetToBool(value: ExistsRet): boolean {
+    if (typeof value === "boolean") return value;
+    return false;
+  }
+  override existsKeyCb(
+    context: F.Context,
+    opt: { key?: C.KEY },
+  ): F.AsyncCbReceiver<boolean> {
+    if (this.canExeExists()) {
+      return F.AsyncCbReceiver.error(new Error("Method not allowed"));
+    }
+    const key = this._getKey(opt.key);
+    return this.toReciver<ExistsCmd, ExistsRet>({
+      context,
+      exe: this.exe.exists,
+      arg: [key, undefined],
+      logInfo: ["exists", key],
+    }).pipeThen(this._exitstsRetToBool.bind(this));
+  }
+  private _exitstsRetToHashBool(value: ExistsRet): Record<string, boolean> {
+    if (typeof value === "boolean") return {};
+    return value ?? {};
+  }
+  override existsHashFieldsCb(
+    context: F.Context,
+    opt: { key?: C.KEY; fields: C.KEY[] | C.AllFields },
+  ): F.AsyncCbReceiver<Record<string, boolean>> {
+    if (this.canExeExists()) {
+      return F.AsyncCbReceiver.error(new Error("Method not allowed"));
+    }
+    const key = this._getKey(opt.key);
+    return this.toReciver<ExistsCmd, ExistsRet>({
+      context,
+      exe: this.exe.exists,
+      arg: [key, opt.fields === "*" ? "*" : opt.fields.map((x) => x.toString())],
+      logInfo: ["exists", key],
+    }).pipeThen(this._exitstsRetToHashBool.bind(this));
+  }
+  private _readRetToVal<T>(value: ReadRet): T | undefined {
+    if (value === undefined) return undefined;
+    if (typeof value === "string") {
+      return this.redis.decode(value);
+    }
+    throw new Error("Unknown Type");
+  }
+  override readKeyCb<T>(
+    context: F.Context,
+    opt: { key?: C.KEY },
+  ): F.AsyncCbReceiver<T | undefined> {
+    if (this.canExeRead()) {
+      return F.AsyncCbReceiver.error(new Error("Method not allowed"));
+    }
+    const key = this._getKey(opt.key);
+    return this.toReciver<ReadCmd, ReadRet>({
+      context,
+      exe: this.exe.read,
+      arg: [key, undefined],
+      logInfo: ["read", key],
+    }).pipeThen((this._readRetToVal<T>).bind(this));
+  }
+  private _readRetToHashVal<T extends Record<string, unknown>>(value: ReadRet): Partial<T> {
+    if (value === undefined) return {};
+    if (typeof value === "string") {
+      throw new Error("Unknown Type");
+    }
     const ret: Partial<T> = {};
     for (const key in value) {
       if (typeof value[key] === "string") {
-        (ret as any)[key] = this.opt.decode(value[key]);
+        (ret as any)[key] = this.redis.decode(value[key]);
       }
     }
     return ret;
   }
-
-  override async writeKey<T>({
-    context,
-    expiry,
-    key,
-    value,
-    log,
-  }: {
-    context?: FUNCTIONS.Context;
-    key: CACHE.KEY;
-    value: T | Promise<T>;
-    expiry: number;
-    log?: boolean;
-  }): Promise<void> {
-    let awaitedValue: T;
-    try {
-      awaitedValue = await value;
-      if (awaitedValue === undefined) return;
-    } catch {
-      return;
+  override readHashFieldsCb<T extends Record<string, unknown>>(
+    context: F.Context,
+    opt: { key?: C.KEY; fields: C.KEY[] | C.AllFields },
+  ): F.AsyncCbReceiver<Partial<T>> {
+    if (this.canExeRead()) {
+      return F.AsyncCbReceiver.error(new Error("Method not allowed"));
     }
-    const timer = time();
-    let Err = undefined;
-    const val = this.opt.encode(awaitedValue);
-    await this.writeExe([key.toString(), val, expiry]).catch((err) => {
-      Err = err ?? null;
-    });
-    if (log) {
-      (context ?? console).log(
-        `(${timer()} ms) ${this.name}.write(${key}) ${
-          Err === undefined ? `✅` : `❌: ${Err}`
-        }`
-      );
-    }
+    const key = this._getKey(opt.key);
+    return this.toReciver<ReadCmd, ReadRet>({
+      context,
+      exe: this.exe.read,
+      arg: [key, opt.fields === "*" ? "*" : opt.fields.map((x) => x.toString())],
+      logInfo: ["read", key],
+    }).pipeThen((this._readRetToHashVal<T>).bind(this));
   }
-  override async writeHashFields<T extends Record<string, unknown>>({
-    context,
-    expiry,
-    key,
-    value,
-    log,
-  }: {
-    context?: FUNCTIONS.Context;
-    key: CACHE.KEY;
-    value: Promise<T> | { [k in keyof T]: Promise<T[k]> | T[k] };
-    expiry: number;
-    log?: boolean;
-  }): Promise<void> {
-    let awaitedValue: T;
-    try {
-      awaitedValue = (
-        value instanceof Promise
-          ? await value.catch(() => ({} as never))
-          : value
-      ) as T;
-      for (const key in awaitedValue) {
-        if (awaitedValue[key] instanceof Promise) {
-          awaitedValue[key] = await awaitedValue[key].catch(() => undefined);
-        }
-        if (awaitedValue[key] === undefined) {
-          delete awaitedValue[key];
-        }
-      }
-      if (!Object.keys(awaitedValue).length) return;
-    } catch {
-      return;
+  override writeKeyCb<T>(
+    context: F.Context,
+    opt: { key?: C.KEY; value: T },
+  ): F.AsyncCbReceiver<void> {
+    if (this.canExeWrite()) {
+      return F.AsyncCbReceiver.error(new Error("Method not allowed"));
     }
-    const timer = time();
-    let Err = undefined;
-    await this.writeExe([
-      key.toString(),
-      Object.fromEntries(
-        Object.keys(awaitedValue).map((key) => [
-          key,
-          this.opt.encode(awaitedValue[key]),
-        ])
-      ),
-      expiry,
-    ]).catch((err) => {
-      Err = err ?? null;
+    const key = this._getKey(opt.key);
+    const value = this.redis.encode(opt.value);
+    return this.toReciver<WriteCmd, WriteRet>({
+      context,
+      exe: this.exe.write,
+      arg: [key, value, this.expiry],
+      logInfo: ["write", key],
     });
-    if (log) {
-      (context ?? console).log(
-        `(${timer()} ms) ${this.name}.write(${key}, [${
-          //
-          Object.keys(awaitedValue)
-        }]) ${Err === undefined ? `✅` : `❌: ${Err}`}`
-      );
+  }
+  override writeHashFieldsCb<T extends Record<string, unknown>>(
+    context: F.Context,
+    opt: { key?: C.KEY; value: T },
+  ): F.AsyncCbReceiver<void> {
+    if (this.canExeWrite()) {
+      return F.AsyncCbReceiver.error(new Error("Method not allowed"));
     }
+    const key = this._getKey(opt.key);
+    const value = Object.fromEntries(
+      Object.keys(opt.value).map((key) => [
+        key,
+        this.redis.encode(opt.value[key]),
+      ]),
+    );
+    return this.toReciver<WriteCmd, WriteRet>({
+      context,
+      exe: this.exe.write,
+      arg: [key, value, this.expiry],
+      logInfo: ["write", key],
+    });
   }
 
-  override async removeKey({
-    context,
-    key,
-    log,
-  }: {
-    context?: FUNCTIONS.Context;
-    key: CACHE.KEY;
-    log?: boolean;
-  }): Promise<void> {
-    const timer = time();
-    let Err = undefined;
-    await this.removeExe([key.toString(), undefined]).catch((err) => {
-      Err = err ?? null;
-    });
-    if (log) {
-      (context ?? console).log(
-        `(${timer()} ms) ${this.name}.remove(${key}) ${
-          Err === undefined ? `✅` : `❌: ${Err}`
-        }`
-      );
+  override removeKeyCb(
+    context: F.Context,
+    opt: { key?: C.KEY },
+  ): F.AsyncCbReceiver<void> {
+    if (this.canExeRemove()) {
+      return F.AsyncCbReceiver.error(new Error("Method not allowed"));
     }
+    const key = this._getKey(opt.key);
+    return this.toReciver<RemoveCmd, RemoveRet>({
+      context,
+      exe: this.exe.remove,
+      arg: [key, undefined],
+      logInfo: ["exists", key],
+    });
   }
-  override async removeHashFields({
-    context,
-    fields,
-    key,
-    log,
-  }: {
-    context?: FUNCTIONS.Context;
-    key: CACHE.KEY;
-    fields: CACHE.AllFields | CACHE.KEY[];
-    log?: boolean;
-  }): Promise<void> {
-    const timer = time();
-    let Err = undefined;
-    await this.removeExe([
-      key.toString(),
-      fields === "*" ? "*" : fields.map((x) => x.toString()),
-    ]).catch((err) => {
-      Err = err ?? null;
-    });
-    if (log) {
-      (context ?? console).log(
-        `(${timer()} ms) ${this.name}.remove(${key}, ${
-          fields === "*" ? "*" : `[${fields}]`
-        }) ${Err === undefined ? `✅` : `❌: ${Err}`}`
-      );
+  override removeHashFieldsCb(
+    context: F.Context,
+    opt: { key?: C.KEY; fields: C.KEY[] | C.AllFields },
+  ): F.AsyncCbReceiver<void> {
+    if (this.canExeExists()) {
+      return F.AsyncCbReceiver.error(new Error("Method not allowed"));
     }
+    const key = this._getKey(opt.key);
+    return this.toReciver<RemoveCmd, RemoveRet>({
+      context,
+      exe: this.exe.remove,
+      arg: [key, opt.fields === "*" ? "*" : opt.fields.map((x) => x.toString())],
+      logInfo: ["exists", key],
+    });
   }
-  override async incrementKey({
-    expiry,
-    incrBy,
-    key,
-    context,
-    log,
-    maxLimit,
-  }: {
-    context?: FUNCTIONS.Context;
-    key: CACHE.KEY;
-    incrBy: number;
-    maxLimit?: number;
-    expiry: number;
-    log?: boolean;
-  }): Promise<{ allowed: boolean; value: number }> {
-    const timer = time();
-    let Err = undefined;
-    const [allowed, value] = await this.incrementExe([
-      key.toString(),
-      null,
-      incrBy,
-      maxLimit ?? null,
-      expiry,
-    ]).catch((err) => {
-      Err = err ?? null;
-      return [false, 0] as const;
-    });
-    if (log) {
-      (context ?? console).log(
-        `(${timer()} ms) ${this.name}.increment(${key}) ${
-          Err === undefined ? `✅` : `❌: ${Err}`
-        }`
-      );
-    }
-    return { allowed, value };
+  private _incrementRetToVal(value: IncrementRet): { allowed: boolean; value: number } {
+    return { allowed: value[0], value: value[1] };
   }
-  override async incrementHashField({
-    expiry,
-    incrBy,
-    key,
-    field,
-    context,
-    log,
-    maxLimit,
-  }: {
-    context?: FUNCTIONS.Context;
-    key: CACHE.KEY;
-    field: CACHE.KEY;
-    incrBy: number;
-    maxLimit?: number;
-    expiry: number;
-    log?: boolean;
-  }): Promise<{ allowed: boolean; value: number }> {
-    const timer = time();
-    let Err = undefined;
-    const [allowed, value] = await this.incrementExe([
-      key.toString(),
-      field.toString(),
-      incrBy,
-      maxLimit ?? null,
-      expiry,
-    ]).catch((err) => {
-      Err = err ?? null;
-      return [false, 0] as const;
-    });
-    if (log) {
-      (context ?? console).log(
-        `(${timer()} ms) ${this.name}.increment(${key}, ${field}) ${
-          Err === undefined ? `✅` : `❌: ${Err}`
-        }`
-      );
+  override incrementKeyCb(
+    context: F.Context,
+    opt: { key?: C.KEY; incrBy: number; maxLimit: number },
+  ): F.AsyncCbReceiver<{ allowed: boolean; value: number }> {
+    if (this.canExeIncrement()) {
+      return F.AsyncCbReceiver.error(new Error("Method not allowed"));
     }
-    return { allowed, value };
+    const key = this._getKey(opt.key);
+    return this.toReciver<IncrementCmd, IncrementRet>({
+      context,
+      exe: this.exe.increment,
+      arg: [key, null, opt.incrBy, opt.maxLimit ?? null, this.expiry],
+      logInfo: ["exists", key],
+    }).pipeThen(this._incrementRetToVal.bind(this));
+  }
+  override incrementHashFieldCb(
+    context: F.Context,
+    opt: { key?: C.KEY; field: C.KEY; incrBy: number; maxLimit: number },
+  ): F.AsyncCbReceiver<{ allowed: boolean; value: number }> {
+    if (this.canExeIncrement()) {
+      return F.AsyncCbReceiver.error(new Error("Method not allowed"));
+    }
+    const key = this._getKey(opt.key);
+    return this.toReciver<IncrementCmd, IncrementRet>({
+      context,
+      exe: this.exe.increment,
+      arg: [key, opt.field.toString(), opt.incrBy, opt.maxLimit ?? null, this.expiry],
+      logInfo: ["exists", key],
+    }).pipeThen(this._incrementRetToVal.bind(this));
+  }
+  override dispose(): void {
+    this.redis.client.close();
+  }
+  protected override clone(): this {
+    return new RedisCacheClient(
+      { expiry: this.expiry, log: this.log, mode: this.mode, name: this.name, prefix: this.prefix, separator: this.separator },
+      this.redis,
+      this.exe,
+    ) as this;
   }
 }

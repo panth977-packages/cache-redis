@@ -1,70 +1,65 @@
 {
   "version": "4",
   "specifiers": {
-    "jsr:@panth977/cache@0.2": "0.2.26",
-    "jsr:@panth977/functions@0.2": "0.2.12",
-    "jsr:@panth977/tools@0.2": "0.2.6",
+    "jsr:@panth977/cache@1": "1.0.1",
+    "jsr:@panth977/functions@1": "1.0.14",
+    "jsr:@panth977/tools@1": "1.0.9",
+    "jsr:@panth977/tools@^1.0.9": "1.0.9",
     "npm:@types/node@*": "22.5.4",
-    "npm:crypto@1": "1.0.1",
     "npm:fs@^0.0.1-security": "0.0.1-security",
     "npm:path@~0.12.7": "0.12.7",
-    "npm:redis@^4.6.0": "4.7.0_@redis+client@1.6.0",
+    "npm:redis@^5.5.6": "5.5.6_@redis+client@5.5.6",
     "npm:url@~0.11.4": "0.11.4",
-    "npm:zod@^3.23.0": "3.23.8"
+    "npm:zod@^3.25.67": "3.25.67"
   },
   "jsr": {
-    "@panth977/cache@0.2.26": {
-      "integrity": "223fa3568a26fa26afde7f58327073408e6422b93bb1799d044c53ea4d52a6b5",
+    "@panth977/cache@1.0.1": {
+      "integrity": "67d05655d746789dfa59b56257f551c3c1b32ef817ee732de961c71cc2956740",
       "dependencies": [
-        "jsr:@panth977/functions"
+        "jsr:@panth977/functions",
+        "jsr:@panth977/tools@1"
       ]
     },
-    "@panth977/functions@0.2.12": {
-      "integrity": "eb089ae5b20faf9b3d5f323221af3f01ebe3b27d5eb93e9ce3091e34d31c144b",
+    "@panth977/functions@1.0.14": {
+      "integrity": "a094525fb4a759d3127c04d0eba4e15aa83e158caac2094040cbd09accb2e59c",
       "dependencies": [
-        "npm:crypto",
         "npm:zod"
       ]
     },
-    "@panth977/tools@0.2.6": {
-      "integrity": "a4c96137ccdd7e6cb4133eb393cb86a93424a4a6fcc09fe6d4e7fca1b2358923"
+    "@panth977/tools@1.0.9": {
+      "integrity": "8a67aa44069830a839be3cad3817f5ecea8a6b9689812a8a866950aa298d4ad5",
+      "dependencies": [
+        "npm:zod"
+      ]
     }
   },
   "npm": {
-    "@redis/bloom@1.2.0_@redis+client@1.6.0": {
-      "integrity": "sha512-HG2DFjYKbpNmVXsa0keLHp/3leGJz1mjh09f2RLGGLQZzSHpkmZWuwJbAvo3QcRY8p80m5+ZdXZdYOSBLlp7Cg==",
+    "@redis/bloom@5.5.6_@redis+client@5.5.6": {
+      "integrity": "sha512-bNR3mxkwtfuCxNOzfV8B3R5zA1LiN57EH6zK4jVBIgzMzliNuReZXBFGnXvsi80/SYohajn78YdpYI+XNpqL+A==",
       "dependencies": [
         "@redis/client"
       ]
     },
-    "@redis/client@1.6.0": {
-      "integrity": "sha512-aR0uffYI700OEEH4gYnitAnv3vzVGXCFvYfdpu/CJKvk4pHfLPEy/JSZyrpQ+15WhXe1yJRXLtfQ84s4mEXnPg==",
+    "@redis/client@5.5.6": {
+      "integrity": "sha512-M3Svdwt6oSfyfQdqEr0L2HOJH2vK7GgCFx1NfAQvpWAT4+ljoT1L5S5cKT3dA9NJrxrOPDkdoTPWJnIrGCOcmw==",
       "dependencies": [
-        "cluster-key-slot",
-        "generic-pool",
-        "yallist"
+        "cluster-key-slot"
       ]
     },
-    "@redis/graph@1.1.1_@redis+client@1.6.0": {
-      "integrity": "sha512-FEMTcTHZozZciLRl6GiiIB4zGm5z5F3F6a6FZCyrfxdKOhFlGkiAqlexWMBzCi4DcRoyiOsuLfW+cjlGWyExOw==",
+    "@redis/json@5.5.6_@redis+client@5.5.6": {
+      "integrity": "sha512-AIsoe3SsGQagqAmSQHaqxEinm5oCWr7zxPWL90kKaEdLJ+zw8KBznf2i9oK0WUFP5pFssSQUXqnscQKe2amfDQ==",
       "dependencies": [
         "@redis/client"
       ]
     },
-    "@redis/json@1.0.7_@redis+client@1.6.0": {
-      "integrity": "sha512-6UyXfjVaTBTJtKNG4/9Z8PSpKE6XgSyEb8iwaqDcy+uKrd/DGYHTWkUdnQDyzm727V7p21WUMhsqz5oy65kPcQ==",
+    "@redis/search@5.5.6_@redis+client@5.5.6": {
+      "integrity": "sha512-JSqasYqO0mVcHL7oxvbySRBBZYRYhFl3W7f0Da7BW8M/r0Z9wCiVrdjnN4/mKBpWZkoJT/iuisLUdPGhpKxBew==",
       "dependencies": [
         "@redis/client"
       ]
     },
-    "@redis/search@1.2.0_@redis+client@1.6.0": {
-      "integrity": "sha512-tYoDBbtqOVigEDMAcTGsRlMycIIjwMCgD8eR2t0NANeQmgK/lvxNAvYyb6bZDD4frHRhIHkJu2TBRvB0ERkOmw==",
-      "dependencies": [
-        "@redis/client"
-      ]
-    },
-    "@redis/time-series@1.1.0_@redis+client@1.6.0": {
-      "integrity": "sha512-c1Q99M5ljsIuc4YdaCwfUEXsofakb9c8+Zse2qxTadu8TalLXuAESzLvFAvNVbkmSlvlzIQOLpBCmWI9wTOt+g==",
+    "@redis/time-series@5.5.6_@redis+client@5.5.6": {
+      "integrity": "sha512-jkpcgq3NOI3TX7xEAJ3JgesJTxAx7k0m6lNxNsYdEM8KOl+xj7GaB/0CbLkoricZDmFSEAz7ClA1iK9XkGHf+Q==",
       "dependencies": [
         "@redis/client"
       ]
@@ -92,9 +87,6 @@
     "cluster-key-slot@1.1.2": {
       "integrity": "sha512-RMr0FhtfXemyinomL4hrWcYJxmX6deFdCxpJzhDttxgO1+bcCnkk+9drydLVDmAMG7NE6aN/fl4F7ucU/90gAA=="
     },
-    "crypto@1.0.1": {
-      "integrity": "sha512-VxBKmeNcqQdiUQUW2Tzq0t377b54N2bMtXO/qiLa+6eRRmmC4qT3D4OnTGoT/U6O9aklQ/jTwbOtRMTTY8G0Ig=="
-    },
     "dunder-proto@1.0.1": {
       "integrity": "sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==",
       "dependencies": [
@@ -120,9 +112,6 @@
     },
     "function-bind@1.1.2": {
       "integrity": "sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA=="
-    },
-    "generic-pool@3.9.0": {
-      "integrity": "sha512-hymDOu5B53XvN4QT9dBmZxPX4CWhBPPLguTZ9MMFeFa/Kg0xWVfylOVNlJji/E7yTZWFd/q9GO5TxDLq156D7g=="
     },
     "get-intrinsic@1.2.7": {
       "integrity": "sha512-VW6Pxhsrk0KAOqs3WEd0klDiF/+V7gQOpAvY1jVU/LHmaD/kQO4523aiJuikX/QAKYiW6x8Jh+RJej1almdtCA==",
@@ -186,12 +175,11 @@
         "side-channel"
       ]
     },
-    "redis@4.7.0_@redis+client@1.6.0": {
-      "integrity": "sha512-zvmkHEAdGMn+hMRXuMBtu4Vo5P6rHQjLoHftu+lBqq8ZTA3RCVC/WzD790bkKKiNFp7d5/9PcSD19fJyyRvOdQ==",
+    "redis@5.5.6_@redis+client@5.5.6": {
+      "integrity": "sha512-hbpqBfcuhWHOS9YLNcXcJ4akNr7HFX61Dq3JuFZ9S7uU7C7kvnzuH2PDIXOP62A3eevvACoG8UacuXP3N07xdg==",
       "dependencies": [
         "@redis/bloom",
         "@redis/client",
-        "@redis/graph",
         "@redis/json",
         "@redis/search",
         "@redis/time-series"
@@ -249,21 +237,18 @@
         "inherits"
       ]
     },
-    "yallist@4.0.0": {
-      "integrity": "sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A=="
-    },
-    "zod@3.23.8": {
-      "integrity": "sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g=="
+    "zod@3.25.67": {
+      "integrity": "sha512-idA2YXwpCdqUSKRCACDE6ItZD9TZzy3OZMtpfLoh6oPR47lipysRrJfjzMqFxQ3uJuUPyUeWe1r9vLH33xO/Qw=="
     }
   },
   "workspace": {
     "dependencies": [
-      "jsr:@panth977/cache@0.2",
-      "jsr:@panth977/functions@0.2",
-      "jsr:@panth977/tools@0.2",
+      "jsr:@panth977/cache@1",
+      "jsr:@panth977/functions@1",
+      "jsr:@panth977/tools@^1.0.9",
       "npm:fs@^0.0.1-security",
       "npm:path@~0.12.7",
-      "npm:redis@^4.6.0",
+      "npm:redis@^5.5.6",
       "npm:url@~0.11.4"
     ]
   }
