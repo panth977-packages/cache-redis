@@ -29,11 +29,11 @@
 
 import type { RedisClientType, RedisDefaultModules, RedisFunctions, RedisModules, RedisScripts } from "redis";
 import { C } from "@panth977/cache";
-import { F } from "@panth977/functions";
 import { T } from "@panth977/tools";
 import * as fs from "fs";
 import * as path from "path";
 import * as url from "url";
+import type { F } from "@panth977/functions";
 /**
  * Function to decode the data from redis
  * @param val
@@ -79,13 +79,13 @@ function buildWithType<A, R>(
   M extends RedisModules = _RedisDefaultModules_,
   F extends RedisFunctions = _RedisFunctions_,
   S extends RedisScripts = _RedisScripts_,
->(client: RedisClientType<M, F, S>, cmds: A[], cb: (r: ["Error", unknown] | ["Data", R[]]) => void) => void {
-  return async function (client, cmds, cb) {
+>(client: RedisClientType<M, F, S>, cmds: A[]) => T.PPromise<R[]> {
+  return function (client, cmds) {
     try {
-      const result = await func(client, cmds);
-      cb(["Data", result]);
+      const result = func(client, cmds);
+      return T.PPromise.from(result);
     } catch (err) {
-      cb(["Error", err]);
+      return T.PPromise.reject(err);
     }
   };
 }
@@ -169,9 +169,9 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
 /**
  * Use this as a client for C.CacheController
  */ export class RedisCacheClient<
-  M extends RedisModules = _RedisDefaultModules_,
-  F extends RedisFunctions = _RedisFunctions_,
-  S extends RedisScripts = _RedisScripts_,
+  RM extends RedisModules = _RedisDefaultModules_,
+  RF extends RedisFunctions = _RedisFunctions_,
+  RS extends RedisScripts = _RedisScripts_,
 > extends C.CacheController {
   constructor(
     opt: {
@@ -183,7 +183,7 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
       mode: "read-write" | "readonly" | "writeonly";
     },
     protected redis: {
-      client: RedisClientType<M, F, S>;
+      client: RedisClientType<RM, RF, RS>;
       decode: <T>(val: string) => T;
       encode: <T>(val: T) => string;
       delayInMs: number;
@@ -204,34 +204,29 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
   ) {
     super(opt);
   }
-  get client(): RedisClientType<M, F, S> {
+  get client(): RedisClientType<RM, RF, RS> {
     return this.redis.client;
   }
   private logger(context: F.Context, prefix: string, start: number) {
     context.logMsg(prefix, `${Date.now() - start} ms`);
-  }
-  private portToCb<T>(logger: null | (() => void), port: F.AsyncCbSender<T>, r: ["Error", unknown] | ["Data", T]): void {
-    logger?.();
-    if (r[0] === "Data") {
-      port.return(r[1]);
-    } else {
-      port.throw(r[1]);
-    }
   }
   protected toReciver<A, R>({ context, exe, logInfo: [logMethod, ...logArgs], arg }: {
     exe: T.CreateBatch<A, R>;
     context: F.Context;
     logInfo: ["exists" | "read" | "write" | "remove" | "increment", ...any[]];
     arg: A;
-  }): F.AsyncCbReceiver<R> {
+  }): T.PPromise<R> {
     const timer = this.log ? this.logger.bind(this, context, `${this.name}.${logMethod}(${logArgs})`, Date.now()) : null;
-    const port = new F.AsyncCbSender<R>();
+    const [port, promise] = T.$async<R>(false);
     try {
-      exe.runJob("cb", arg, (this.portToCb<R>).bind(this, timer, port));
+      const process = exe.runJob(arg);
+      if (timer) process.onend(timer);
+      process.ondata(port.return);
+      process.onerror(port.throw);
     } catch (err) {
       port.throw(err);
     }
-    return port.getHandler();
+    return promise;
   }
   private _exitstsRetToBool(value: ExistsRet): boolean {
     if (typeof value === "boolean") return value;
@@ -240,9 +235,9 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
   override existsKeyCb(
     context: F.Context,
     opt: { key?: C.KEY },
-  ): F.AsyncCbReceiver<boolean> {
+  ): T.PPromise<boolean> {
     if (this.canExeExists()) {
-      return F.AsyncCbReceiver.error(new Error("Method not allowed"));
+      return T.PPromise.reject(new Error("Method not allowed"));
     }
     const key = this._getKey(opt.key);
     return this.toReciver<ExistsCmd, ExistsRet>({
@@ -250,7 +245,7 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
       exe: this.exe.exists,
       arg: [key, undefined],
       logInfo: ["exists", key],
-    }).pipeThen(this._exitstsRetToBool.bind(this));
+    }).map(this._exitstsRetToBool.bind(this));
   }
   private _exitstsRetToHashBool(value: ExistsRet): Record<string, boolean> {
     if (typeof value === "boolean") return {};
@@ -259,9 +254,9 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
   override existsHashFieldsCb(
     context: F.Context,
     opt: { key?: C.KEY; fields: C.KEY[] | C.AllFields },
-  ): F.AsyncCbReceiver<Record<string, boolean>> {
+  ): T.PPromise<Record<string, boolean>> {
     if (this.canExeExists()) {
-      return F.AsyncCbReceiver.error(new Error("Method not allowed"));
+      return T.PPromise.reject(new Error("Method not allowed"));
     }
     const key = this._getKey(opt.key);
     return this.toReciver<ExistsCmd, ExistsRet>({
@@ -269,7 +264,7 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
       exe: this.exe.exists,
       arg: [key, opt.fields === "*" ? "*" : opt.fields.map((x) => x.toString())],
       logInfo: ["exists", key],
-    }).pipeThen(this._exitstsRetToHashBool.bind(this));
+    }).map(this._exitstsRetToHashBool.bind(this));
   }
   private _readRetToVal<T>(value: ReadRet): T | undefined {
     if (value === undefined) return undefined;
@@ -281,9 +276,9 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
   override readKeyCb<T>(
     context: F.Context,
     opt: { key?: C.KEY },
-  ): F.AsyncCbReceiver<T | undefined> {
+  ): T.PPromise<T | undefined> {
     if (this.canExeRead()) {
-      return F.AsyncCbReceiver.error(new Error("Method not allowed"));
+      return T.PPromise.reject(new Error("Method not allowed"));
     }
     const key = this._getKey(opt.key);
     return this.toReciver<ReadCmd, ReadRet>({
@@ -291,7 +286,7 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
       exe: this.exe.read,
       arg: [key, undefined],
       logInfo: ["read", key],
-    }).pipeThen((this._readRetToVal<T>).bind(this));
+    }).map((this._readRetToVal<T>).bind(this));
   }
   private _readRetToHashVal<T extends Record<string, unknown>>(value: ReadRet): Partial<T> {
     if (value === undefined) return {};
@@ -309,9 +304,9 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
   override readHashFieldsCb<T extends Record<string, unknown>>(
     context: F.Context,
     opt: { key?: C.KEY; fields: C.KEY[] | C.AllFields },
-  ): F.AsyncCbReceiver<Partial<T>> {
+  ): T.PPromise<Partial<T>> {
     if (this.canExeRead()) {
-      return F.AsyncCbReceiver.error(new Error("Method not allowed"));
+      return T.PPromise.reject(new Error("Method not allowed"));
     }
     const key = this._getKey(opt.key);
     return this.toReciver<ReadCmd, ReadRet>({
@@ -319,14 +314,14 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
       exe: this.exe.read,
       arg: [key, opt.fields === "*" ? "*" : opt.fields.map((x) => x.toString())],
       logInfo: ["read", key],
-    }).pipeThen((this._readRetToHashVal<T>).bind(this));
+    }).map((this._readRetToHashVal<T>).bind(this));
   }
   override writeKeyCb<T>(
     context: F.Context,
     opt: { key?: C.KEY; value: T },
-  ): F.AsyncCbReceiver<void> {
+  ): T.PPromise<void> {
     if (this.canExeWrite()) {
-      return F.AsyncCbReceiver.error(new Error("Method not allowed"));
+      return T.PPromise.reject(new Error("Method not allowed"));
     }
     const key = this._getKey(opt.key);
     const value = this.redis.encode(opt.value);
@@ -340,9 +335,9 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
   override writeHashFieldsCb<T extends Record<string, unknown>>(
     context: F.Context,
     opt: { key?: C.KEY; value: T },
-  ): F.AsyncCbReceiver<void> {
+  ): T.PPromise<void> {
     if (this.canExeWrite()) {
-      return F.AsyncCbReceiver.error(new Error("Method not allowed"));
+      return T.PPromise.reject(new Error("Method not allowed"));
     }
     const key = this._getKey(opt.key);
     const value = Object.fromEntries(
@@ -362,9 +357,9 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
   override removeKeyCb(
     context: F.Context,
     opt: { key?: C.KEY },
-  ): F.AsyncCbReceiver<void> {
+  ): T.PPromise<void> {
     if (this.canExeRemove()) {
-      return F.AsyncCbReceiver.error(new Error("Method not allowed"));
+      return T.PPromise.reject(new Error("Method not allowed"));
     }
     const key = this._getKey(opt.key);
     return this.toReciver<RemoveCmd, RemoveRet>({
@@ -377,9 +372,9 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
   override removeHashFieldsCb(
     context: F.Context,
     opt: { key?: C.KEY; fields: C.KEY[] | C.AllFields },
-  ): F.AsyncCbReceiver<void> {
+  ): T.PPromise<void> {
     if (this.canExeExists()) {
-      return F.AsyncCbReceiver.error(new Error("Method not allowed"));
+      return T.PPromise.reject(new Error("Method not allowed"));
     }
     const key = this._getKey(opt.key);
     return this.toReciver<RemoveCmd, RemoveRet>({
@@ -395,9 +390,9 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
   override incrementKeyCb(
     context: F.Context,
     opt: { key?: C.KEY; incrBy: number; maxLimit: number },
-  ): F.AsyncCbReceiver<{ allowed: boolean; value: number }> {
+  ): T.PPromise<{ allowed: boolean; value: number }> {
     if (this.canExeIncrement()) {
-      return F.AsyncCbReceiver.error(new Error("Method not allowed"));
+      return T.PPromise.reject(new Error("Method not allowed"));
     }
     const key = this._getKey(opt.key);
     return this.toReciver<IncrementCmd, IncrementRet>({
@@ -405,14 +400,14 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
       exe: this.exe.increment,
       arg: [key, null, opt.incrBy, opt.maxLimit ?? null, this.expiry],
       logInfo: ["exists", key],
-    }).pipeThen(this._incrementRetToVal.bind(this));
+    }).map(this._incrementRetToVal.bind(this));
   }
   override incrementHashFieldCb(
     context: F.Context,
     opt: { key?: C.KEY; field: C.KEY; incrBy: number; maxLimit: number },
-  ): F.AsyncCbReceiver<{ allowed: boolean; value: number }> {
+  ): T.PPromise<{ allowed: boolean; value: number }> {
     if (this.canExeIncrement()) {
-      return F.AsyncCbReceiver.error(new Error("Method not allowed"));
+      return T.PPromise.reject(new Error("Method not allowed"));
     }
     const key = this._getKey(opt.key);
     return this.toReciver<IncrementCmd, IncrementRet>({
@@ -420,7 +415,7 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
       exe: this.exe.increment,
       arg: [key, opt.field.toString(), opt.incrBy, opt.maxLimit ?? null, this.expiry],
       logInfo: ["exists", key],
-    }).pipeThen(this._incrementRetToVal.bind(this));
+    }).map(this._incrementRetToVal.bind(this));
   }
   override dispose(): void {
     this.redis.client.close();
