@@ -27,7 +27,13 @@
  * ```
  */
 
-import type { RedisClientType, RedisDefaultModules, RedisFunctions, RedisModules, RedisScripts } from "redis";
+import type {
+  RedisClientType,
+  RedisDefaultModules,
+  RedisFunctions,
+  RedisModules,
+  RedisScripts,
+} from "redis";
 import { C } from "@panth977/cache";
 import { T } from "@panth977/tools";
 import * as fs from "fs";
@@ -74,12 +80,18 @@ function buildWithType<A, R>(
     M extends RedisModules = _RedisDefaultModules_,
     F extends RedisFunctions = _RedisFunctions_,
     S extends RedisScripts = _RedisScripts_,
-  >(client: RedisClientType<M, F, S>, cmds: A[]) => Promise<R[]>,
+  >(
+    client: RedisClientType<M, F, S>,
+    cmds: A[],
+  ) => Promise<R[]>,
 ): <
   M extends RedisModules = _RedisDefaultModules_,
   F extends RedisFunctions = _RedisFunctions_,
   S extends RedisScripts = _RedisScripts_,
->(client: RedisClientType<M, F, S>, cmds: A[]) => T.PPromise<R[]> {
+>(
+  client: RedisClientType<M, F, S>,
+  cmds: A[],
+) => T.PPromise<R[]> {
   return function (client, cmds) {
     try {
       const result = func(client, cmds);
@@ -92,27 +104,29 @@ function buildWithType<A, R>(
 
 type ExistsCmd = [string, string[] | "*" | undefined];
 type ExistsRet = boolean | Record<string, boolean> | null;
-const existsExe = buildWithType<ExistsCmd, ExistsRet>(async function (client, cmds) {
-  const result = await client.eval(luaScripts.exists, {
-    keys: cmds.map((p) => p[0]),
-    arguments: cmds.map((p) => JSON.stringify(p[1] || null)),
-  });
-  const values = [];
-  for (const item of result as (string | string[])[]) {
-    if (typeof item === "number" || typeof item === "string") {
-      values.push(!!+item);
-    } else if (Array.isArray(item)) {
-      const obj: Record<string, boolean> = {};
-      for (let i = 0; i < item.length; i += 2) {
-        obj[item[i]] = !!+item[i + 1];
+const existsExe = buildWithType<ExistsCmd, ExistsRet>(
+  async function (client, cmds) {
+    const result = await client.eval(luaScripts.exists, {
+      keys: cmds.map((p) => p[0]),
+      arguments: cmds.map((p) => JSON.stringify(p[1] || null)),
+    });
+    const values = [];
+    for (const item of result as (string | string[])[]) {
+      if (typeof item === "number" || typeof item === "string") {
+        values.push(!!+item);
+      } else if (Array.isArray(item)) {
+        const obj: Record<string, boolean> = {};
+        for (let i = 0; i < item.length; i += 2) {
+          obj[item[i]] = !!+item[i + 1];
+        }
+        values.push(obj);
+      } else {
+        values.push(null);
       }
-      values.push(obj);
-    } else {
-      values.push(null);
     }
-  }
-  return values;
-});
+    return values;
+  },
+);
 
 type ReadCmd = [string, string[] | "*" | undefined];
 type ReadRet = string | Record<string, string> | null;
@@ -138,33 +152,39 @@ const readExe = buildWithType<ReadCmd, ReadRet>(async function (client, cmds) {
 
 type WriteCmd = [string, string | Record<string, string>, number];
 type WriteRet = void;
-const writeExe = buildWithType<WriteCmd, WriteRet>(async function (client, cmds) {
-  await client.eval(luaScripts.write, {
-    keys: cmds.map((x) => x[0]),
-    arguments: cmds.map((x) => JSON.stringify([x[1], x[2]])),
-  });
-  return Array(cmds.length);
-});
+const writeExe = buildWithType<WriteCmd, WriteRet>(
+  async function (client, cmds) {
+    await client.eval(luaScripts.write, {
+      keys: cmds.map((x) => x[0]),
+      arguments: cmds.map((x) => JSON.stringify([x[1], x[2]])),
+    });
+    return Array(cmds.length);
+  },
+);
 
 type RemoveCmd = [string, string[] | "*" | undefined];
 type RemoveRet = void;
-const removeExe = buildWithType<RemoveCmd, RemoveRet>(async function (client, cmds) {
-  await client.eval(luaScripts.remove, {
-    keys: cmds.map((p) => p[0]),
-    arguments: cmds.map((p) => JSON.stringify(p[1] || null)),
-  });
-  return Array(cmds.length);
-});
+const removeExe = buildWithType<RemoveCmd, RemoveRet>(
+  async function (client, cmds) {
+    await client.eval(luaScripts.remove, {
+      keys: cmds.map((p) => p[0]),
+      arguments: cmds.map((p) => JSON.stringify(p[1] || null)),
+    });
+    return Array(cmds.length);
+  },
+);
 
 type IncrementCmd = [string, string | null, number, number | null, number];
 type IncrementRet = [boolean, number];
-const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (client, cmds) {
-  const result = await client.eval(luaScripts.increment, {
-    keys: cmds.map((p) => p[0]),
-    arguments: cmds.map((p) => JSON.stringify([p[1], p[2], p[3], p[4]])),
-  });
-  return (result as [number, number][]).map((x) => [!!x[0], x[1]]);
-});
+const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
+  async function (client, cmds) {
+    const result = await client.eval(luaScripts.increment, {
+      keys: cmds.map((p) => p[0]),
+      arguments: cmds.map((p) => JSON.stringify([p[1], p[2], p[3], p[4]])),
+    });
+    return (result as [number, number][]).map((x) => [!!x[0], x[1]]);
+  },
+);
 
 /**
  * Use this as a client for C.CacheController
@@ -195,11 +215,26 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
       remove: T.CreateBatch<RemoveCmd, RemoveRet>;
       increment: T.CreateBatch<IncrementCmd, IncrementRet>;
     } = {
-      exists: new T.CreateBatch(existsExe.bind(null, redis.client), redis.delayInMs),
-      read: new T.CreateBatch(readExe.bind(null, redis.client), redis.delayInMs),
-      write: new T.CreateBatch(writeExe.bind(null, redis.client), redis.delayInMs),
-      remove: new T.CreateBatch(removeExe.bind(null, redis.client), redis.delayInMs),
-      increment: new T.CreateBatch(incrementExe.bind(null, redis.client), redis.delayInMs),
+      exists: new T.CreateBatch(
+        existsExe.bind(null, redis.client),
+        redis.delayInMs,
+      ),
+      read: new T.CreateBatch(
+        readExe.bind(null, redis.client),
+        redis.delayInMs,
+      ),
+      write: new T.CreateBatch(
+        writeExe.bind(null, redis.client),
+        redis.delayInMs,
+      ),
+      remove: new T.CreateBatch(
+        removeExe.bind(null, redis.client),
+        redis.delayInMs,
+      ),
+      increment: new T.CreateBatch(
+        incrementExe.bind(null, redis.client),
+        redis.delayInMs,
+      ),
     },
   ) {
     super(opt);
@@ -210,13 +245,25 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
   private logger(context: F.Context, prefix: string, start: number) {
     context.logMsg(prefix, `${Date.now() - start} ms`);
   }
-  protected toReciver<A, R>({ context, exe, logInfo: [logMethod, ...logArgs], arg }: {
+  protected toReciver<A, R>({
+    context,
+    exe,
+    logInfo: [logMethod, ...logArgs],
+    arg,
+  }: {
     exe: T.CreateBatch<A, R>;
     context: F.Context;
     logInfo: ["exists" | "read" | "write" | "remove" | "increment", ...any[]];
     arg: A;
   }): T.PPromise<R> {
-    const timer = this.log ? this.logger.bind(this, context, `${this.name}.${logMethod}(${logArgs})`, Date.now()) : null;
+    const timer = this.log
+      ? this.logger.bind(
+          this,
+          context,
+          `${this.name}.${logMethod}(${logArgs})`,
+          Date.now(),
+        )
+      : null;
     const [port, promise] = T.$async<R>(false);
     try {
       const process = exe.runJob(arg);
@@ -232,7 +279,7 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
     if (typeof value === "boolean") return value;
     return false;
   }
-  override existsKeyCb(
+  override existsKey(
     context: F.Context,
     opt: { key?: C.KEY },
   ): T.PPromise<boolean> {
@@ -251,7 +298,7 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
     if (typeof value === "boolean") return {};
     return value ?? {};
   }
-  override existsHashFieldsCb(
+  override existsHashFields(
     context: F.Context,
     opt: { key?: C.KEY; fields: C.KEY[] | C.AllFields },
   ): T.PPromise<Record<string, boolean>> {
@@ -262,7 +309,10 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
     return this.toReciver<ExistsCmd, ExistsRet>({
       context,
       exe: this.exe.exists,
-      arg: [key, opt.fields === "*" ? "*" : opt.fields.map((x) => x.toString())],
+      arg: [
+        key,
+        opt.fields === "*" ? "*" : opt.fields.map((x) => x.toString()),
+      ],
       logInfo: ["exists", key],
     }).map(this._exitstsRetToHashBool.bind(this));
   }
@@ -273,7 +323,7 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
     }
     throw new Error("Unknown Type");
   }
-  override readKeyCb<T>(
+  override readKey<T>(
     context: F.Context,
     opt: { key?: C.KEY },
   ): T.PPromise<T | undefined> {
@@ -288,7 +338,9 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
       logInfo: ["read", key],
     }).map((this._readRetToVal<T>).bind(this));
   }
-  private _readRetToHashVal<T extends Record<string, unknown>>(value: ReadRet): Partial<T> {
+  private _readRetToHashVal<T extends Record<string, unknown>>(
+    value: ReadRet,
+  ): Partial<T> {
     if (value === undefined) return {};
     if (typeof value === "string") {
       throw new Error("Unknown Type");
@@ -301,7 +353,7 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
     }
     return ret;
   }
-  override readHashFieldsCb<T extends Record<string, unknown>>(
+  override readHashFields<T extends Record<string, unknown>>(
     context: F.Context,
     opt: { key?: C.KEY; fields: C.KEY[] | C.AllFields },
   ): T.PPromise<Partial<T>> {
@@ -312,11 +364,14 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
     return this.toReciver<ReadCmd, ReadRet>({
       context,
       exe: this.exe.read,
-      arg: [key, opt.fields === "*" ? "*" : opt.fields.map((x) => x.toString())],
+      arg: [
+        key,
+        opt.fields === "*" ? "*" : opt.fields.map((x) => x.toString()),
+      ],
       logInfo: ["read", key],
     }).map((this._readRetToHashVal<T>).bind(this));
   }
-  override writeKeyCb<T>(
+  override writeKey<T>(
     context: F.Context,
     opt: { key?: C.KEY; value: T },
   ): T.PPromise<void> {
@@ -332,7 +387,7 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
       logInfo: ["write", key],
     });
   }
-  override writeHashFieldsCb<T extends Record<string, unknown>>(
+  override writeHashFields<T extends Record<string, unknown>>(
     context: F.Context,
     opt: { key?: C.KEY; value: T },
   ): T.PPromise<void> {
@@ -354,7 +409,7 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
     });
   }
 
-  override removeKeyCb(
+  override removeKey(
     context: F.Context,
     opt: { key?: C.KEY },
   ): T.PPromise<void> {
@@ -369,7 +424,7 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
       logInfo: ["exists", key],
     });
   }
-  override removeHashFieldsCb(
+  override removeHashFields(
     context: F.Context,
     opt: { key?: C.KEY; fields: C.KEY[] | C.AllFields },
   ): T.PPromise<void> {
@@ -380,14 +435,20 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
     return this.toReciver<RemoveCmd, RemoveRet>({
       context,
       exe: this.exe.remove,
-      arg: [key, opt.fields === "*" ? "*" : opt.fields.map((x) => x.toString())],
+      arg: [
+        key,
+        opt.fields === "*" ? "*" : opt.fields.map((x) => x.toString()),
+      ],
       logInfo: ["exists", key],
     });
   }
-  private _incrementRetToVal(value: IncrementRet): { allowed: boolean; value: number } {
+  private _incrementRetToVal(value: IncrementRet): {
+    allowed: boolean;
+    value: number;
+  } {
     return { allowed: value[0], value: value[1] };
   }
-  override incrementKeyCb(
+  override incrementKey(
     context: F.Context,
     opt: { key?: C.KEY; incrBy: number; maxLimit: number },
   ): T.PPromise<{ allowed: boolean; value: number }> {
@@ -402,7 +463,7 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
       logInfo: ["exists", key],
     }).map(this._incrementRetToVal.bind(this));
   }
-  override incrementHashFieldCb(
+  override incrementHashField(
     context: F.Context,
     opt: { key?: C.KEY; field: C.KEY; incrBy: number; maxLimit: number },
   ): T.PPromise<{ allowed: boolean; value: number }> {
@@ -413,7 +474,13 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
     return this.toReciver<IncrementCmd, IncrementRet>({
       context,
       exe: this.exe.increment,
-      arg: [key, opt.field.toString(), opt.incrBy, opt.maxLimit ?? null, this.expiry],
+      arg: [
+        key,
+        opt.field.toString(),
+        opt.incrBy,
+        opt.maxLimit ?? null,
+        this.expiry,
+      ],
       logInfo: ["exists", key],
     }).map(this._incrementRetToVal.bind(this));
   }
@@ -422,7 +489,14 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(async function (c
   }
   protected override clone(): this {
     return new RedisCacheClient(
-      { expiry: this.expiry, log: this.log, mode: this.mode, name: this.name, prefix: this.prefix, separator: this.separator },
+      {
+        expiry: this.expiry,
+        log: this.log,
+        mode: this.mode,
+        name: this.name,
+        prefix: this.prefix,
+        separator: this.separator,
+      },
       this.redis,
       this.exe,
     ) as this;
