@@ -200,7 +200,7 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
       expiry: number;
       prefix: string;
       log: boolean;
-      mode: "read-write" | "readonly" | "writeonly";
+      mode: "read-write" | "readonly" | "writeonly" | "ignore";
     },
     protected redis: {
       client: RedisClientType<RM, RF, RS>;

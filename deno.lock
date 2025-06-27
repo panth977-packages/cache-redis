@@ -1,7 +1,7 @@
 {
   "version": "4",
   "specifiers": {
-    "jsr:@panth977/cache@^1.0.3": "1.0.3",
+    "jsr:@panth977/cache@^1.0.4": "1.0.4",
     "jsr:@panth977/functions@1": "1.0.20",
     "jsr:@panth977/tools@1": "1.0.13",
     "npm:@types/node@*": "22.5.4",
@@ -12,8 +12,8 @@
     "npm:zod@^3.25.67": "3.25.67"
   },
   "jsr": {
-    "@panth977/cache@1.0.3": {
-      "integrity": "cbadab49d157ea99a34d77444630a63ceb7c15038cda5d9c5931dd07fc708206",
+    "@panth977/cache@1.0.4": {
+      "integrity": "a53a5ea90f6444470b9972b607a029b9bc8405c6cc7ccecf4446a1056e1cc1b6",
       "dependencies": [
         "jsr:@panth977/functions",
         "jsr:@panth977/tools"
@@ -243,7 +243,7 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@panth977/cache@^1.0.3",
+      "jsr:@panth977/cache@^1.0.4",
       "jsr:@panth977/functions@1",
       "jsr:@panth977/tools@1",
       "npm:fs@^0.0.1-security",
