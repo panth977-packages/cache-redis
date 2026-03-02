@@ -27,13 +27,7 @@
  * ```
  */
 
-import type {
-  RedisClientType,
-  RedisDefaultModules,
-  RedisFunctions,
-  RedisModules,
-  RedisScripts,
-} from "redis";
+import type { RedisClientType, RedisDefaultModules, RedisFunctions, RedisModules, RedisScripts } from "redis";
 import { C } from "@panth977/cache";
 import { T } from "@panth977/tools";
 import * as fs from "fs";
@@ -258,11 +252,11 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
   }): T.PPromise<R> {
     const timer = this.log
       ? this.logger.bind(
-          this,
-          context,
-          `${this.name}.${logMethod}(${logArgs})`,
-          Date.now(),
-        )
+        this,
+        context,
+        `${this.name}.${logMethod}(${logArgs})`,
+        Date.now(),
+      )
       : null;
     const [port, promise] = T.$async<R>(false);
     try {
