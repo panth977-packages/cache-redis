@@ -30,9 +30,7 @@
 import type { RedisClientType, RedisDefaultModules, RedisFunctions, RedisModules, RedisScripts } from "redis";
 import { C } from "@panth977/cache";
 import { T } from "@panth977/tools";
-import * as fs from "fs";
-import * as path from "path";
-import * as url from "url";
+import * as path from "@std/path";
 import type { F } from "@panth977/functions";
 /**
  * Function to decode the data from redis
@@ -50,20 +48,16 @@ export function decode<T>(val: string): T {
 export function encode<T>(val: T): string {
   return JSON.stringify(val);
 }
-const scriptsDir = (function () {
-  const __filename = url.fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  return path.join(__dirname, "scripts");
-})();
+const scriptsDir = path.join(import.meta.dirname!, "scripts");
 /**
  * Scripts used for queering redis
  */
 const luaScripts = {
-  exists: fs.readFileSync(path.join(scriptsDir, "exists.lua")).toString(),
-  read: fs.readFileSync(path.join(scriptsDir, "read.lua")).toString(),
-  write: fs.readFileSync(path.join(scriptsDir, "write.lua")).toString(),
-  remove: fs.readFileSync(path.join(scriptsDir, "remove.lua")).toString(),
-  increment: fs.readFileSync(path.join(scriptsDir, "increment.lua")).toString(),
+  exists: Deno.readTextFileSync(path.join(scriptsDir, "exists.lua")),
+  read: Deno.readTextFileSync(path.join(scriptsDir, "read.lua")),
+  write: Deno.readTextFileSync(path.join(scriptsDir, "write.lua")),
+  remove: Deno.readTextFileSync(path.join(scriptsDir, "remove.lua")),
+  increment: Deno.readTextFileSync(path.join(scriptsDir, "increment.lua")),
 };
 type _RedisDefaultModules_ = RedisDefaultModules & Record<never, never>;
 type _RedisFunctions_ = Record<string, never>;
