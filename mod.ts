@@ -30,7 +30,6 @@
 import type { RedisClientType, RedisDefaultModules, RedisFunctions, RedisModules, RedisScripts } from "redis";
 import { C } from "@panth977/cache";
 import { T } from "@panth977/tools";
-import * as path from "@std/path";
 import type { F } from "@panth977/functions";
 /**
  * Function to decode the data from redis
@@ -48,16 +47,21 @@ export function decode<T>(val: string): T {
 export function encode<T>(val: T): string {
   return JSON.stringify(val);
 }
-const scriptsDir = path.join(import.meta.dirname!, "scripts");
+const scriptsDir = import.meta.resolve("./scripts/");
+async function loadScript(filename: string) {
+  const url = new URL(filename, scriptsDir);
+  const response = await fetch(url);
+  return await response.text();
+}
 /**
  * Scripts used for queering redis
  */
 const luaScripts = {
-  exists: Deno.readTextFileSync(path.join(scriptsDir, "exists.lua")),
-  read: Deno.readTextFileSync(path.join(scriptsDir, "read.lua")),
-  write: Deno.readTextFileSync(path.join(scriptsDir, "write.lua")),
-  remove: Deno.readTextFileSync(path.join(scriptsDir, "remove.lua")),
-  increment: Deno.readTextFileSync(path.join(scriptsDir, "increment.lua")),
+  exists: await loadScript("exists.lua"),
+  read: await loadScript("read.lua"),
+  write: await loadScript("write.lua"),
+  remove: await loadScript("remove.lua"),
+  increment: await loadScript("increment.lua"),
 };
 type _RedisDefaultModules_ = RedisDefaultModules & Record<never, never>;
 type _RedisFunctions_ = Record<string, never>;

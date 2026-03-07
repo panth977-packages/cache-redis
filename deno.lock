@@ -4,8 +4,6 @@
     "jsr:@panth977/cache@^2.0.2": "2.0.2",
     "jsr:@panth977/functions@^2.0.2": "2.0.2",
     "jsr:@panth977/tools@2": "2.0.0",
-    "jsr:@std/internal@^1.0.12": "1.0.12",
-    "jsr:@std/path@^1.1.4": "1.1.4",
     "npm:@types/node@*": "22.5.4",
     "npm:redis@^5.5.6": "5.5.6_@redis+client@5.5.6",
     "npm:zod@^3.25.76": "3.25.76"
@@ -29,15 +27,6 @@
       "integrity": "3ea9418cfdc76b01258fdf9735dd6be19ffc2bc39c9da6036c71f1a85026921f",
       "dependencies": [
         "npm:zod"
-      ]
-    },
-    "@std/internal@1.0.12": {
-      "integrity": "972a634fd5bc34b242024402972cd5143eac68d8dffaca5eaa4dba30ce17b027"
-    },
-    "@std/path@1.1.4": {
-      "integrity": "1d2d43f39efb1b42f0b1882a25486647cb851481862dc7313390b2bb044314b5",
-      "dependencies": [
-        "jsr:@std/internal"
       ]
     }
   },
@@ -103,7 +92,6 @@
       "jsr:@panth977/cache@^2.0.2",
       "jsr:@panth977/functions@^2.0.2",
       "jsr:@panth977/tools@2",
-      "jsr:@std/path@^1.1.4",
       "npm:redis@^5.5.6"
     ]
   }
