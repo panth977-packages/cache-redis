@@ -186,14 +186,6 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
   RS extends RedisScripts = _RedisScripts_,
 > extends C.CacheController {
   constructor(
-    opt: {
-      name: string;
-      separator: string;
-      expiry: number;
-      prefix: string;
-      log: boolean;
-      mode: "read-write" | "readonly" | "writeonly" | "ignore";
-    },
     protected redis: {
       client: RedisClientType<RM, RF, RS>;
       decode: <T>(val: string) => T;
@@ -207,59 +199,22 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
       remove: T.CreateBatch<RemoveCmd, RemoveRet>;
       increment: T.CreateBatch<IncrementCmd, IncrementRet>;
     } = {
-      exists: new T.CreateBatch(
-        existsExe.bind(null, redis.client),
-        redis.delayInMs,
-      ),
-      read: new T.CreateBatch(
-        readExe.bind(null, redis.client),
-        redis.delayInMs,
-      ),
-      write: new T.CreateBatch(
-        writeExe.bind(null, redis.client),
-        redis.delayInMs,
-      ),
-      remove: new T.CreateBatch(
-        removeExe.bind(null, redis.client),
-        redis.delayInMs,
-      ),
-      increment: new T.CreateBatch(
-        incrementExe.bind(null, redis.client),
-        redis.delayInMs,
-      ),
+      exists: new T.CreateBatch(existsExe.bind(null, redis.client), redis.delayInMs),
+      read: new T.CreateBatch(readExe.bind(null, redis.client), redis.delayInMs),
+      write: new T.CreateBatch(writeExe.bind(null, redis.client), redis.delayInMs),
+      remove: new T.CreateBatch(removeExe.bind(null, redis.client), redis.delayInMs),
+      increment: new T.CreateBatch(incrementExe.bind(null, redis.client), redis.delayInMs),
     },
   ) {
-    super(opt);
+    super();
   }
   get client(): RedisClientType<RM, RF, RS> {
     return this.redis.client;
   }
-  private logger(context: F.Context, prefix: string, start: number) {
-    context.logMsg(prefix, `${Date.now() - start} ms`);
-  }
-  protected toReciver<A, R>({
-    context,
-    exe,
-    logInfo: [logMethod, ...logArgs],
-    arg,
-  }: {
-    exe: T.CreateBatch<A, R>;
-    context: F.Context;
-    logInfo: ["exists" | "read" | "write" | "remove" | "increment", ...any[]];
-    arg: A;
-  }): T.PPromise<R> {
-    const timer = this.log
-      ? this.logger.bind(
-        this,
-        context,
-        `${this.name}.${logMethod}(${logArgs})`,
-        Date.now(),
-      )
-      : null;
+  protected toReceiver<A, R>({ exe, arg }: { exe: T.CreateBatch<A, R>; arg: A }): T.PPromise<R> {
     const [port, promise] = T.$async<R>(false);
     try {
       const process = exe.runJob(arg);
-      if (timer) process.onend(timer);
       process.ondata(port.return);
       process.onerror(port.throw);
     } catch (err) {
@@ -272,19 +227,13 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
     return false;
   }
   override existsKey(
-    context: F.Context,
-    opt: { key?: C.KEY },
+    _context: F.Context,
+    opt: { key: C.KEY },
   ): T.PPromise<boolean> {
-    if (this.canExeExists()) {
-      // return T.PPromise.reject(new Error("Method not allowed"));
-      return T.PPromise.resolve(false);
-    }
-    const key = this._getKey(opt.key);
-    return this.toReciver<ExistsCmd, ExistsRet>({
-      context,
+    const key = opt.key.toString();
+    return this.toReceiver<ExistsCmd, ExistsRet>({
       exe: this.exe.exists,
       arg: [key, undefined],
-      logInfo: ["exists", key],
     }).map(this._exitstsRetToBool.bind(this));
   }
   private _exitstsRetToHashBool(value: ExistsRet): Record<string, boolean> {
@@ -292,22 +241,16 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
     return value ?? {};
   }
   override existsHashFields(
-    context: F.Context,
-    opt: { key?: C.KEY; fields: C.KEY[] | C.AllFields },
+    _context: F.Context,
+    opt: { key: C.KEY; fields: C.KEY[] | C.AllFields },
   ): T.PPromise<Record<string, boolean>> {
-    if (this.canExeExists()) {
-      // return T.PPromise.reject(new Error("Method not allowed"));
-      return T.PPromise.resolve({});
-    }
-    const key = this._getKey(opt.key);
-    return this.toReciver<ExistsCmd, ExistsRet>({
-      context,
+    const key = opt.key.toString();
+    return this.toReceiver<ExistsCmd, ExistsRet>({
       exe: this.exe.exists,
       arg: [
         key,
         opt.fields === "*" ? "*" : opt.fields.map((x) => x.toString()),
       ],
-      logInfo: ["exists", key],
     }).map(this._exitstsRetToHashBool.bind(this));
   }
   private _readRetToVal<T>(value: ReadRet): T | undefined {
@@ -318,19 +261,13 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
     throw new Error("Unknown Type");
   }
   override readKey<T>(
-    context: F.Context,
-    opt: { key?: C.KEY },
+    _context: F.Context,
+    opt: { key: C.KEY },
   ): T.PPromise<T | undefined> {
-    if (this.canExeRead()) {
-      // return T.PPromise.reject(new Error("Method not allowed"));
-      return T.PPromise.resolve<T | undefined>(undefined);
-    }
-    const key = this._getKey(opt.key);
-    return this.toReciver<ReadCmd, ReadRet>({
-      context,
+    const key = opt.key.toString();
+    return this.toReceiver<ReadCmd, ReadRet>({
       exe: this.exe.read,
       arg: [key, undefined],
-      logInfo: ["read", key],
     }).map((this._readRetToVal<T>).bind(this));
   }
   private _readRetToHashVal<T extends Record<string, unknown>>(
@@ -349,97 +286,67 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
     return ret;
   }
   override readHashFields<T extends Record<string, unknown>>(
-    context: F.Context,
-    opt: { key?: C.KEY; fields: C.KEY[] | C.AllFields },
+    _context: F.Context,
+    opt: { key: C.KEY; fields: C.KEY[] | C.AllFields },
   ): T.PPromise<Partial<T>> {
-    if (this.canExeRead()) {
-      // return T.PPromise.reject(new Error("Method not allowed"));
-      return T.PPromise.resolve({});
-    }
-    const key = this._getKey(opt.key);
-    return this.toReciver<ReadCmd, ReadRet>({
-      context,
+    const key = opt.key.toString();
+    return this.toReceiver<ReadCmd, ReadRet>({
       exe: this.exe.read,
       arg: [
         key,
         opt.fields === "*" ? "*" : opt.fields.map((x) => x.toString()),
       ],
-      logInfo: ["read", key],
     }).map((this._readRetToHashVal<T>).bind(this));
   }
   override writeKey<T>(
-    context: F.Context,
-    opt: { key?: C.KEY; value: T },
+    _context: F.Context,
+    opt: { expiry: number; key: C.KEY; value: T },
   ): T.PPromise<void> {
-    if (this.canExeWrite()) {
-      // return T.PPromise.reject(new Error("Method not allowed"));
-      return T.PPromise.resolve<void>(void 0);
-    }
-    const key = this._getKey(opt.key);
+    const key = opt.key.toString();
     const value = this.redis.encode(opt.value);
-    return this.toReciver<WriteCmd, WriteRet>({
-      context,
+    return this.toReceiver<WriteCmd, WriteRet>({
       exe: this.exe.write,
-      arg: [key, value, this.expiry],
-      logInfo: ["write", key],
+      arg: [key, value, opt.expiry],
     });
   }
   override writeHashFields<T extends Record<string, unknown>>(
-    context: F.Context,
-    opt: { key?: C.KEY; value: T },
+    _context: F.Context,
+    opt: { expiry: number; key: C.KEY; value: T },
   ): T.PPromise<void> {
-    if (this.canExeWrite()) {
-      // return T.PPromise.reject(new Error("Method not allowed"));
-      return T.PPromise.resolve<void>(void 0);
-    }
-    const key = this._getKey(opt.key);
+    const key = opt.key.toString();
     const value = Object.fromEntries(
       Object.keys(opt.value).map((key) => [
         key,
         this.redis.encode(opt.value[key]),
       ]),
     );
-    return this.toReciver<WriteCmd, WriteRet>({
-      context,
+    return this.toReceiver<WriteCmd, WriteRet>({
       exe: this.exe.write,
-      arg: [key, value, this.expiry],
-      logInfo: ["write", key],
+      arg: [key, value, opt.expiry],
     });
   }
 
   override removeKey(
-    context: F.Context,
-    opt: { key?: C.KEY },
+    _context: F.Context,
+    opt: { key: C.KEY },
   ): T.PPromise<void> {
-    if (this.canExeRemove()) {
-      // return T.PPromise.reject(new Error("Method not allowed"));
-      return T.PPromise.resolve<void>(void 0);
-    }
-    const key = this._getKey(opt.key);
-    return this.toReciver<RemoveCmd, RemoveRet>({
-      context,
+    const key = opt.key.toString();
+    return this.toReceiver<RemoveCmd, RemoveRet>({
       exe: this.exe.remove,
       arg: [key, undefined],
-      logInfo: ["exists", key],
     });
   }
   override removeHashFields(
-    context: F.Context,
-    opt: { key?: C.KEY; fields: C.KEY[] | C.AllFields },
+    _context: F.Context,
+    opt: { key: C.KEY; fields: C.KEY[] | C.AllFields },
   ): T.PPromise<void> {
-    if (this.canExeExists()) {
-      // return T.PPromise.reject(new Error("Method not allowed"));
-      return T.PPromise.resolve<void>(void 0);
-    }
-    const key = this._getKey(opt.key);
-    return this.toReciver<RemoveCmd, RemoveRet>({
-      context,
+    const key = opt.key.toString();
+    return this.toReceiver<RemoveCmd, RemoveRet>({
       exe: this.exe.remove,
       arg: [
         key,
         opt.fields === "*" ? "*" : opt.fields.map((x) => x.toString()),
       ],
-      logInfo: ["exists", key],
     });
   }
   private _incrementRetToVal(value: IncrementRet): {
@@ -449,58 +356,32 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
     return { allowed: value[0], value: value[1] };
   }
   override incrementKey(
-    context: F.Context,
-    opt: { key?: C.KEY; incrBy: number; maxLimit: number },
+    _context: F.Context,
+    opt: { expiry: number; key: C.KEY; incrBy: number; maxLimit: number },
   ): T.PPromise<{ allowed: boolean; value: number }> {
-    if (this.canExeIncrement()) {
-      // return T.PPromise.reject(new Error("Method not allowed"));
-      return T.PPromise.resolve<{ allowed: boolean; value: number }>({ allowed: true, value: 0 });
-    }
-    const key = this._getKey(opt.key);
-    return this.toReciver<IncrementCmd, IncrementRet>({
-      context,
+    const key = opt.key.toString();
+    return this.toReceiver<IncrementCmd, IncrementRet>({
       exe: this.exe.increment,
-      arg: [key, null, opt.incrBy, opt.maxLimit ?? null, this.expiry],
-      logInfo: ["exists", key],
+      arg: [key, null, opt.incrBy, opt.maxLimit ?? null, opt.expiry],
     }).map(this._incrementRetToVal.bind(this));
   }
   override incrementHashField(
-    context: F.Context,
-    opt: { key?: C.KEY; field: C.KEY; incrBy: number; maxLimit: number },
+    _context: F.Context,
+    opt: { expiry: number; key: C.KEY; field: C.KEY; incrBy: number; maxLimit: number },
   ): T.PPromise<{ allowed: boolean; value: number }> {
-    if (this.canExeIncrement()) {
-      // return T.PPromise.reject(new Error("Method not allowed"));
-      return T.PPromise.resolve<{ allowed: boolean; value: number }>({ allowed: true, value: 0 });
-    }
-    const key = this._getKey(opt.key);
-    return this.toReciver<IncrementCmd, IncrementRet>({
-      context,
+    const key = opt.key.toString();
+    return this.toReceiver<IncrementCmd, IncrementRet>({
       exe: this.exe.increment,
       arg: [
         key,
         opt.field.toString(),
         opt.incrBy,
         opt.maxLimit ?? null,
-        this.expiry,
+        opt.expiry,
       ],
-      logInfo: ["exists", key],
     }).map(this._incrementRetToVal.bind(this));
   }
   override dispose(): void {
     this.redis.client.close();
-  }
-  override clone(): this {
-    return new RedisCacheClient(
-      {
-        expiry: this.expiry,
-        log: this.log,
-        mode: this.mode,
-        name: this.name,
-        prefix: this.prefix,
-        separator: this.separator,
-      },
-      this.redis,
-      this.exe,
-    ) as this;
   }
 }
