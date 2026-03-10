@@ -87,7 +87,7 @@ function buildWithType<A, R>(
   return function (client, cmds) {
     try {
       const result = func(client, cmds);
-      return T.PPromise.from(result);
+      return T.PPromise.resolve(result);
     } catch (err) {
       return T.PPromise.reject(err);
     }
@@ -276,7 +276,8 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
     opt: { key?: C.KEY },
   ): T.PPromise<boolean> {
     if (this.canExeExists()) {
-      return T.PPromise.reject(new Error("Method not allowed"));
+      // return T.PPromise.reject(new Error("Method not allowed"));
+      return T.PPromise.resolve(false);
     }
     const key = this._getKey(opt.key);
     return this.toReciver<ExistsCmd, ExistsRet>({
@@ -295,7 +296,8 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
     opt: { key?: C.KEY; fields: C.KEY[] | C.AllFields },
   ): T.PPromise<Record<string, boolean>> {
     if (this.canExeExists()) {
-      return T.PPromise.reject(new Error("Method not allowed"));
+      // return T.PPromise.reject(new Error("Method not allowed"));
+      return T.PPromise.resolve({});
     }
     const key = this._getKey(opt.key);
     return this.toReciver<ExistsCmd, ExistsRet>({
@@ -320,7 +322,8 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
     opt: { key?: C.KEY },
   ): T.PPromise<T | undefined> {
     if (this.canExeRead()) {
-      return T.PPromise.reject(new Error("Method not allowed"));
+      // return T.PPromise.reject(new Error("Method not allowed"));
+      return T.PPromise.resolve<T | undefined>(undefined);
     }
     const key = this._getKey(opt.key);
     return this.toReciver<ReadCmd, ReadRet>({
@@ -350,7 +353,8 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
     opt: { key?: C.KEY; fields: C.KEY[] | C.AllFields },
   ): T.PPromise<Partial<T>> {
     if (this.canExeRead()) {
-      return T.PPromise.reject(new Error("Method not allowed"));
+      // return T.PPromise.reject(new Error("Method not allowed"));
+      return T.PPromise.resolve({});
     }
     const key = this._getKey(opt.key);
     return this.toReciver<ReadCmd, ReadRet>({
@@ -368,7 +372,8 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
     opt: { key?: C.KEY; value: T },
   ): T.PPromise<void> {
     if (this.canExeWrite()) {
-      return T.PPromise.reject(new Error("Method not allowed"));
+      // return T.PPromise.reject(new Error("Method not allowed"));
+      return T.PPromise.resolve<void>(void 0);
     }
     const key = this._getKey(opt.key);
     const value = this.redis.encode(opt.value);
@@ -384,7 +389,8 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
     opt: { key?: C.KEY; value: T },
   ): T.PPromise<void> {
     if (this.canExeWrite()) {
-      return T.PPromise.reject(new Error("Method not allowed"));
+      // return T.PPromise.reject(new Error("Method not allowed"));
+      return T.PPromise.resolve<void>(void 0);
     }
     const key = this._getKey(opt.key);
     const value = Object.fromEntries(
@@ -406,7 +412,8 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
     opt: { key?: C.KEY },
   ): T.PPromise<void> {
     if (this.canExeRemove()) {
-      return T.PPromise.reject(new Error("Method not allowed"));
+      // return T.PPromise.reject(new Error("Method not allowed"));
+      return T.PPromise.resolve<void>(void 0);
     }
     const key = this._getKey(opt.key);
     return this.toReciver<RemoveCmd, RemoveRet>({
@@ -421,7 +428,8 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
     opt: { key?: C.KEY; fields: C.KEY[] | C.AllFields },
   ): T.PPromise<void> {
     if (this.canExeExists()) {
-      return T.PPromise.reject(new Error("Method not allowed"));
+      // return T.PPromise.reject(new Error("Method not allowed"));
+      return T.PPromise.resolve<void>(void 0);
     }
     const key = this._getKey(opt.key);
     return this.toReciver<RemoveCmd, RemoveRet>({
@@ -445,7 +453,8 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
     opt: { key?: C.KEY; incrBy: number; maxLimit: number },
   ): T.PPromise<{ allowed: boolean; value: number }> {
     if (this.canExeIncrement()) {
-      return T.PPromise.reject(new Error("Method not allowed"));
+      // return T.PPromise.reject(new Error("Method not allowed"));
+      return T.PPromise.resolve<{ allowed: boolean; value: number }>({ allowed: true, value: 0 });
     }
     const key = this._getKey(opt.key);
     return this.toReciver<IncrementCmd, IncrementRet>({
@@ -460,7 +469,8 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
     opt: { key?: C.KEY; field: C.KEY; incrBy: number; maxLimit: number },
   ): T.PPromise<{ allowed: boolean; value: number }> {
     if (this.canExeIncrement()) {
-      return T.PPromise.reject(new Error("Method not allowed"));
+      // return T.PPromise.reject(new Error("Method not allowed"));
+      return T.PPromise.resolve<{ allowed: boolean; value: number }>({ allowed: true, value: 0 });
     }
     const key = this._getKey(opt.key);
     return this.toReciver<IncrementCmd, IncrementRet>({
@@ -479,7 +489,7 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
   override dispose(): void {
     this.redis.client.close();
   }
-  protected override clone(): this {
+  override clone(): this {
     return new RedisCacheClient(
       {
         expiry: this.expiry,

@@ -1,30 +1,31 @@
 {
-  "version": "4",
+  "version": "5",
   "specifiers": {
-    "jsr:@panth977/cache@^2.1.0": "2.1.0",
-    "jsr:@panth977/functions@^2.1.0": "2.1.0",
-    "jsr:@panth977/tools@^2.1.0": "2.1.0",
+    "jsr:@panth977/cache@^2.1.2": "2.1.2",
+    "jsr:@panth977/functions@^2.1.0": "2.1.1",
+    "jsr:@panth977/tools@^2.1.0": "2.1.2",
     "npm:@types/node@*": "22.5.4",
     "npm:redis@^5.5.6": "5.5.6_@redis+client@5.5.6",
     "npm:zod@^3.25.76": "3.25.76"
   },
   "jsr": {
-    "@panth977/cache@2.1.0": {
-      "integrity": "7bda2b5221899a3627234061d6dc8bc8cc29ae8a0aa2d748122839c1d6136184",
+    "@panth977/cache@2.1.2": {
+      "integrity": "63da98c43ab336b08389125101370198c98867530ed3494a706cd13b431c3893",
       "dependencies": [
         "jsr:@panth977/functions",
-        "jsr:@panth977/tools"
+        "jsr:@panth977/tools",
+        "npm:zod"
       ]
     },
-    "@panth977/functions@2.1.0": {
-      "integrity": "31695e3635e5102224686f40ada069448d11556d87c8646586a90e670c22219a",
+    "@panth977/functions@2.1.1": {
+      "integrity": "d8e83c791f5b5baae772c7092e624ce55d2efa182607959623a37e6fa5e6e851",
       "dependencies": [
         "jsr:@panth977/tools",
         "npm:zod"
       ]
     },
-    "@panth977/tools@2.1.0": {
-      "integrity": "e197fd034178565a2bf1606f05d3f68a0321a2d39a533c7f450948c3234d1107",
+    "@panth977/tools@2.1.2": {
+      "integrity": "6f25828f20ef858e8830b52c13c8e476ff60940fdd194f9d7c6bcf931f73f63b",
       "dependencies": [
         "npm:zod"
       ]
@@ -89,7 +90,7 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@panth977/cache@^2.1.0",
+      "jsr:@panth977/cache@^2.1.2",
       "jsr:@panth977/functions@^2.1.0",
       "jsr:@panth977/tools@^2.1.0",
       "npm:redis@^5.5.6"
