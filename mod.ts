@@ -254,7 +254,7 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
     }).map(this._exitstsRetToHashBool.bind(this));
   }
   private _readRetToVal<T>(value: ReadRet): T | undefined {
-    if (value === undefined) return undefined;
+    if (value == undefined) return undefined;
     if (typeof value === "string") {
       return this.redis.decode(value);
     }
@@ -273,7 +273,7 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
   private _readRetToHashVal<T extends Record<string, unknown>>(
     value: ReadRet,
   ): Partial<T> {
-    if (value === undefined) return {};
+    if (value == undefined) return {};
     if (typeof value === "string") {
       throw new Error("Unknown Type");
     }
