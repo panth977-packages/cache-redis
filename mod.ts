@@ -212,7 +212,7 @@ const incrementExe = buildWithType<IncrementCmd, IncrementRet>(
     return this.redis.client;
   }
   protected toReceiver<A, R>({ exe, arg }: { exe: T.CreateBatch<A, R>; arg: A }): T.PPromise<R> {
-    const [port, promise] = T.$async<R>(false);
+    const [port, promise] = T.$async<R>();
     try {
       const process = exe.runJob(arg);
       process.ondata(port.return);
